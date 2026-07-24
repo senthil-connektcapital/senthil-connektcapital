@@ -1,0 +1,54 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "jimmy-openai"
+version = "0.1.0"
+description = "OpenAI SDK-compatible Python client for chatjimmy.ai (Llama 3.1)"
+readme = "SDK.md"
+requires-python = ">=3.9"
+license = { text = "MIT" }
+authors = [{ name = "Senthil Kumaran S" }]
+keywords = ["openai", "llm", "llama", "chatjimmy", "sdk", "tools"]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Intended Audience :: Developers",
+  "License :: OSI Approved :: MIT License",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+dependencies = [
+  "httpx>=0.27.0",
+  "pydantic>=2.0.0",
+  "typing-extensions>=4.8.0",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8.0.0",
+  "pytest-asyncio>=0.23.0",
+  "respx>=0.21.0",
+]
+
+[project.urls]
+Homepage = "https://chatjimmy.ai"
+Repository = "https://github.com/senthil-connektcapital/senthil-connektcapital"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/jimmy"]
+
+[tool.hatch.build.targets.wheel.force-include]
+"src/jimmy" = "jimmy"
+
+[tool.hatch.build.targets.sdist]
+include = ["src/jimmy", "SDK.md", "examples", "tests", "pyproject.toml"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+asyncio_mode = "auto"

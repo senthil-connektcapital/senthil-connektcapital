@@ -1,5 +1,26 @@
 ## Hi there 👋
 
+### jimmy-openai
+
+OpenAI SDK-compatible Python client for [chatjimmy.ai](https://chatjimmy.ai) (Llama 3.1 8B) — chat completions, streaming, models, and tool calling.
+
+```bash
+pip install -e .
+```
+
+```python
+from jimmy import Jimmy  # or: from jimmy import OpenAI
+
+client = Jimmy()
+r = client.chat.completions.create(
+    model="llama3.1-8B",
+    messages=[{"role": "user", "content": "Hello"}],
+)
+print(r.choices[0].message.content)
+```
+
+See [SDK.md](./SDK.md) and `examples/`.
+
 <!--
 **senthil-connektcapital/senthil-connektcapital** is a ✨ _special_ ✨ repository because its `README.md` (this file) appears on your GitHub profile.
 
