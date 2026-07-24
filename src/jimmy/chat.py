@@ -12,6 +12,11 @@ import httpx
 from ._http import build_chat_body, iter_text_stream, raise_for_status, wrap_request_error
 from ._parsing import STATS_RE, build_completion, split_stats
 from .exceptions import APIError
+from .structured import (
+    ResponseFormat,
+    build_structured_system_prompt,
+    normalize_response_format,
+)
 from .tools import (
     apply_tool_choice_instruction,
     assistant_tool_call_message,
@@ -89,6 +94,64 @@ def _extract_system_prompt(messages: List[Dict[str, Any]], explicit: str = "") -
     return combined, rest
 
 
+def _prepare_request(
+    *,
+    client: Any,
+    messages: Sequence[MessageDict],
+    model: str,
+    tools: Optional[Sequence[ToolDict]],
+    tool_choice: Optional[ToolChoice],
+    system_prompt: str,
+    top_k: Optional[int],
+    response_format: Optional[ResponseFormat],
+    extra_body: Optional[Dict[str, Any]],
+    attachment: Any,
+) -> tuple[Dict[str, Any], str, bool, Optional[Dict[str, Any]], Optional[Any]]:
+    """
+    Build Jimmy chat body + metadata for structured/tool parsing.
+    Returns (body, model_name, enable_tools, fmt_dict, pydantic_model).
+    """
+    fmt, pydantic_model = normalize_response_format(response_format)
+    tools_n = normalize_tools(tools)
+    mode, forced = resolve_tool_choice(tool_choice, tools_n)
+
+    if fmt is not None and tools_n and mode != "none":
+        raise APIError("response_format structured outputs cannot be combined with tool calling")
+
+    coerced = _coerce_messages(list(messages))
+    sys_from_msgs, rest = _extract_system_prompt(coerced, system_prompt)
+
+    if tools_n and mode != "none":
+        tool_sys = build_tools_system_prompt(tools_n) + apply_tool_choice_instruction(mode, forced)
+        sys_from_msgs = f"{sys_from_msgs}\n\n{tool_sys}".strip() if sys_from_msgs else tool_sys
+
+    if fmt is not None:
+        struct_sys = build_structured_system_prompt(fmt)
+        sys_from_msgs = f"{sys_from_msgs}\n\n{struct_sys}".strip() if sys_from_msgs else struct_sys
+
+    payload_messages: List[Dict[str, Any]] = []
+    if sys_from_msgs:
+        payload_messages.append({"role": "system", "content": sys_from_msgs})
+    payload_messages.extend(rest)
+
+    tk = top_k if top_k is not None else client.top_k
+    body_extra = dict(extra_body) if extra_body else None
+    if body_extra and "top_k" in body_extra:
+        tk = int(body_extra.pop("top_k"))
+
+    model_name = model or client.default_model
+    body = build_chat_body(
+        messages=payload_messages,
+        model=model_name,
+        system_prompt=sys_from_msgs,
+        top_k=tk,
+        attachment=attachment,
+        extra=body_extra,
+    )
+    enable_tools = bool(tools_n and mode != "none")
+    return body, model_name, enable_tools, fmt, pydantic_model
+
+
 class Stream:
     """Iterator over ChatCompletionChunk, collecting full text."""
 
@@ -158,6 +221,7 @@ class Completions:
         stream: Literal[False] = False,
         tools: Optional[Sequence[ToolDict]] = ...,
         tool_choice: Optional[ToolChoice] = ...,
+        response_format: Optional[ResponseFormat] = ...,
         system_prompt: str = ...,
         top_k: Optional[int] = ...,
         temperature: Optional[float] = ...,
@@ -175,6 +239,7 @@ class Completions:
         stream: Literal[True],
         tools: Optional[Sequence[ToolDict]] = ...,
         tool_choice: Optional[ToolChoice] = ...,
+        response_format: Optional[ResponseFormat] = ...,
         system_prompt: str = ...,
         top_k: Optional[int] = ...,
         temperature: Optional[float] = ...,
@@ -191,6 +256,7 @@ class Completions:
         stream: bool = False,
         tools: Optional[Sequence[ToolDict]] = None,
         tool_choice: Optional[ToolChoice] = None,
+        response_format: Optional[ResponseFormat] = None,
         system_prompt: str = "",
         top_k: Optional[int] = None,
         temperature: Optional[float] = None,  # accepted for OpenAI compat; not sent
@@ -205,32 +271,20 @@ class Completions:
     ) -> Union[ChatCompletion, Stream]:
         del temperature, max_tokens, stop, presence_penalty, frequency_penalty, user, kwargs
 
-        tools_n = normalize_tools(tools)
-        mode, forced = resolve_tool_choice(tool_choice, tools_n)
+        if stream and response_format is not None:
+            raise APIError("streaming is not supported together with response_format; use create(stream=False)")
 
-        coerced = _coerce_messages(list(messages))
-        sys_from_msgs, rest = _extract_system_prompt(coerced, system_prompt)
-
-        if tools_n and mode != "none":
-            tool_sys = build_tools_system_prompt(tools_n) + apply_tool_choice_instruction(mode, forced)
-            sys_from_msgs = f"{sys_from_msgs}\n\n{tool_sys}".strip() if sys_from_msgs else tool_sys
-
-        payload_messages: List[Dict[str, Any]] = []
-        if sys_from_msgs:
-            payload_messages.append({"role": "system", "content": sys_from_msgs})
-        payload_messages.extend(rest)
-
-        tk = top_k if top_k is not None else self._client.top_k
-        if extra_body and "top_k" in extra_body:
-            tk = int(extra_body.pop("top_k"))
-
-        body = build_chat_body(
-            messages=payload_messages,
-            model=model or self._client.default_model,
-            system_prompt=sys_from_msgs,
-            top_k=tk,
+        body, model_name, enable_tools, fmt, pydantic_model = _prepare_request(
+            client=self._client,
+            messages=messages,
+            model=model,
+            tools=tools,
+            tool_choice=tool_choice,
+            system_prompt=system_prompt,
+            top_k=top_k,
+            response_format=response_format,
+            extra_body=extra_body,
             attachment=attachment,
-            extra=extra_body,
         )
 
         url = self._client._chat_url()
@@ -246,7 +300,7 @@ class Completions:
                 raise_for_status(response)
                 return Stream(
                     response,
-                    model=model or self._client.default_model,
+                    model=model_name,
                     completion_id=f"chatcmpl-{uuid.uuid4().hex[:24]}",
                 )
 
@@ -258,11 +312,39 @@ class Completions:
         raw = response.text
         text, stats = split_stats(raw)
         return build_completion(
-            model=model or self._client.default_model,
+            model=model_name,
             text=text,
             raw_body=raw,
             stats=stats,
-            enable_tools=bool(tools_n and mode != "none"),
+            enable_tools=enable_tools,
+            response_format=fmt,
+            pydantic_model=pydantic_model,
+        )
+
+    def parse(
+        self,
+        *,
+        messages: Sequence[MessageDict],
+        response_format: ResponseFormat,
+        model: str = "llama3.1-8B",
+        system_prompt: str = "",
+        top_k: Optional[int] = None,
+        **kwargs: Any,
+    ) -> ChatCompletion:
+        """
+        OpenAI-style structured parse.
+
+        Pass a Pydantic model or an OpenAI response_format dict. The parsed
+        value is available at ``completion.choices[0].message.parsed``.
+        """
+        return self.create(
+            messages=messages,
+            model=model,
+            response_format=response_format,
+            system_prompt=system_prompt,
+            top_k=top_k,
+            stream=False,
+            **kwargs,
         )
 
     def run_tools(
@@ -389,6 +471,7 @@ class AsyncCompletions:
         stream: bool = False,
         tools: Optional[Sequence[ToolDict]] = None,
         tool_choice: Optional[ToolChoice] = None,
+        response_format: Optional[ResponseFormat] = None,
         system_prompt: str = "",
         top_k: Optional[int] = None,
         temperature: Optional[float] = None,
@@ -399,32 +482,20 @@ class AsyncCompletions:
     ) -> Union[ChatCompletion, AsyncStream]:
         del temperature, max_tokens, kwargs
 
-        tools_n = normalize_tools(tools)
-        mode, forced = resolve_tool_choice(tool_choice, tools_n)
+        if stream and response_format is not None:
+            raise APIError("streaming is not supported together with response_format; use create(stream=False)")
 
-        coerced = _coerce_messages(list(messages))
-        sys_from_msgs, rest = _extract_system_prompt(coerced, system_prompt)
-
-        if tools_n and mode != "none":
-            tool_sys = build_tools_system_prompt(tools_n) + apply_tool_choice_instruction(mode, forced)
-            sys_from_msgs = f"{sys_from_msgs}\n\n{tool_sys}".strip() if sys_from_msgs else tool_sys
-
-        payload_messages: List[Dict[str, Any]] = []
-        if sys_from_msgs:
-            payload_messages.append({"role": "system", "content": sys_from_msgs})
-        payload_messages.extend(rest)
-
-        tk = top_k if top_k is not None else self._client.top_k
-        if extra_body and "top_k" in extra_body:
-            tk = int(extra_body.pop("top_k"))
-
-        body = build_chat_body(
-            messages=payload_messages,
-            model=model or self._client.default_model,
-            system_prompt=sys_from_msgs,
-            top_k=tk,
+        body, model_name, enable_tools, fmt, pydantic_model = _prepare_request(
+            client=self._client,
+            messages=messages,
+            model=model,
+            tools=tools,
+            tool_choice=tool_choice,
+            system_prompt=system_prompt,
+            top_k=top_k,
+            response_format=response_format,
+            extra_body=extra_body,
             attachment=attachment,
-            extra=extra_body,
         )
 
         url = self._client._chat_url()
@@ -440,7 +511,7 @@ class AsyncCompletions:
                 raise_for_status(response)
                 return AsyncStream(
                     response,
-                    model=model or self._client.default_model,
+                    model=model_name,
                     completion_id=f"chatcmpl-{uuid.uuid4().hex[:24]}",
                 )
 
@@ -452,11 +523,33 @@ class AsyncCompletions:
         raw = response.text
         text, stats = split_stats(raw)
         return build_completion(
-            model=model or self._client.default_model,
+            model=model_name,
             text=text,
             raw_body=raw,
             stats=stats,
-            enable_tools=bool(tools_n and mode != "none"),
+            enable_tools=enable_tools,
+            response_format=fmt,
+            pydantic_model=pydantic_model,
+        )
+
+    async def parse(
+        self,
+        *,
+        messages: Sequence[MessageDict],
+        response_format: ResponseFormat,
+        model: str = "llama3.1-8B",
+        system_prompt: str = "",
+        top_k: Optional[int] = None,
+        **kwargs: Any,
+    ) -> ChatCompletion:
+        return await self.create(
+            messages=messages,
+            model=model,
+            response_format=response_format,
+            system_prompt=system_prompt,
+            top_k=top_k,
+            stream=False,
+            **kwargs,
         )
 
     async def run_tools(

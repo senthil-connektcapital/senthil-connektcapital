@@ -24,6 +24,9 @@ class ChatCompletionMessage(BaseModel):
     tool_calls: Optional[List[ToolCall]] = None
     tool_call_id: Optional[str] = None
     name: Optional[str] = None
+    # OpenAI structured outputs / .parse() — BaseModel instance or dict
+    parsed: Optional[Any] = None
+    refusal: Optional[str] = None
 
 
 class Choice(BaseModel):
@@ -94,6 +97,7 @@ class ModelList(BaseModel):
 MessageDict = Dict[str, Any]
 ToolDict = Dict[str, Any]
 ToolChoice = Union[Literal["none", "auto", "required"], Dict[str, Any]]
+ResponseFormatDict = Dict[str, Any]
 
 
 class JimmyChatOptions(BaseModel):

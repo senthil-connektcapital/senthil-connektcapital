@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "jimmy-openai"
-version = "0.1.0"
+version = "0.2.0"
 description = "OpenAI SDK-compatible Python client for chatjimmy.ai (Llama 3.1)"
 readme = "SDK.md"
 requires-python = ">=3.9"

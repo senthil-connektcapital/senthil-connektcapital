@@ -2,7 +2,7 @@
 
 OpenAI SDK-compatible Python client for [chatjimmy.ai](https://chatjimmy.ai) (Llama 3.1 8B).
 
-Drop-in style API for chat completions, streaming, models listing, and **tool / function calling**.
+Drop-in style API for chat completions, streaming, models listing, **tool / function calling**, and **structured outputs** (`response_format` / Pydantic `.parse()`).
 
 ## Install
 
@@ -78,6 +78,71 @@ if msg.tool_calls:
 else:
     print(msg.content)
 ```
+
+## Structured outputs
+
+OpenAI-compatible `response_format` and `.parse()` — JSON is prompted + validated client-side (Jimmy has no native structured-output endpoint).
+
+### JSON object mode
+
+```python
+r = client.chat.completions.create(
+    model="llama3.1-8B",
+    messages=[{"role": "user", "content": 'Return {"city","country"} for France\'s capital'}],
+    response_format={"type": "json_object"},
+)
+print(r.choices[0].message.parsed)  # dict
+```
+
+### JSON Schema
+
+```python
+r = client.chat.completions.create(
+    model="llama3.1-8B",
+    messages=[{"role": "user", "content": "Classify: I love this"}],
+    response_format={
+        "type": "json_schema",
+        "json_schema": {
+            "name": "sentiment",
+            "strict": True,
+            "schema": {
+                "type": "object",
+                "properties": {
+                    "label": {"type": "string", "enum": ["positive", "neutral", "negative"]},
+                    "confidence": {"type": "number"},
+                },
+                "required": ["label", "confidence"],
+                "additionalProperties": False,
+            },
+        },
+    },
+)
+print(r.choices[0].message.parsed)
+```
+
+### Pydantic `.parse()` (OpenAI-style)
+
+```python
+from pydantic import BaseModel, Field
+from typing import List
+
+class CalendarEvent(BaseModel):
+    name: str
+    date: str
+    participants: List[str]
+
+r = client.chat.completions.parse(
+    model="llama3.1-8B",
+    messages=[{"role": "user", "content": "Alice and Bob meet on 2026-08-01 for sync"}],
+    response_format=CalendarEvent,
+)
+event: CalendarEvent = r.choices[0].message.parsed
+print(event.name, event.participants)
+```
+
+Notes:
+- `message.content` is normalized JSON text; `message.parsed` is the dict / Pydantic instance.
+- `response_format` cannot be combined with tool calling or `stream=True`.
 
 ### Agentic loop helper
 
