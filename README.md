@@ -21,7 +21,9 @@ print(r.choices[0].message.content)
 
 See [SDK.md](./SDK.md), `examples/`, and `tests/test_sample_usage.py` for runnable sample usage.
 
-**Browser / CORS:** chatjimmy blocks browser CORS — use [`singlefile/`](./singlefile/) (Cloudflare Worker + browser JS class, or one-file Python proxy).
+**Browser / CORS:** chatjimmy blocks browser CORS — use [`singlefile/`](./singlefile/) (Python proxy or Docker).
+
+**Docker:** `docker pull ghcr.io/senthil-connektcapital/jimmy-proxy:latest` (see `Dockerfile` + `.github/workflows/docker-publish.yml`).
 
 <!--
 **senthil-connektcapital/senthil-connektcapital** is a ✨ _special_ ✨ repository because its `README.md` (this file) appears on your GitHub profile.

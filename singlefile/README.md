@@ -78,6 +78,27 @@ No pip. Good for localhost / a tiny VPS. Non-streaming (use the Worker for SSE).
 
 ---
 
+## Docker (recommended for self-hosting)
+
+Build locally:
+
+```bash
+docker build -t jimmy-proxy .
+docker run --rm -p 8787:8787 jimmy-proxy
+```
+
+Published image (GitHub Actions → GHCR, **public, no login to pull**):
+
+```bash
+docker pull ghcr.io/senthil-connektcapital/jimmy-proxy:latest
+docker run --rm -p 8787:8787 ghcr.io/senthil-connektcapital/jimmy-proxy:latest
+```
+
+Health: `GET http://localhost:8787/health`  
+Chat: `POST http://localhost:8787/v1/chat/completions`
+
+---
+
 ## Can I skip the proxy entirely?
 
 | Runtime | Direct to chatjimmy? |
