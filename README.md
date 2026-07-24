@@ -19,7 +19,7 @@ r = client.chat.completions.create(
 print(r.choices[0].message.content)
 ```
 
-See [SDK.md](./SDK.md) and `examples/` (chat, streaming, tools, structured output).
+See [SDK.md](./SDK.md), `examples/`, and `tests/test_sample_usage.py` for runnable sample usage.
 
 <!--
 **senthil-connektcapital/senthil-connektcapital** is a ✨ _special_ ✨ repository because its `README.md` (this file) appears on your GitHub profile.

@@ -12,6 +12,12 @@ pip install -e .
 pip install -e ".[dev]"
 ```
 
+Runnable sample usage (unit tests + copy-paste snippets): `tests/test_sample_usage.py`
+
+```bash
+pytest tests/test_sample_usage.py -v
+```
+
 ## Quick start
 
 ```python
