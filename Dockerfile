@@ -18,6 +18,8 @@ WORKDIR /app
 RUN groupadd --system jimmy && useradd --system --gid jimmy jimmy
 
 COPY singlefile/jimmy-proxy.py /app/jimmy-proxy.py
+COPY openapi.yaml /app/openapi.yaml
+COPY openapi.json /app/openapi.json
 
 RUN chown -R jimmy:jimmy /app
 

@@ -22,6 +22,7 @@ import re
 import uuid
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from typing import Any
+from pathlib import Path
 from urllib.request import Request, urlopen
 
 JIMMY_CHAT = "https://chatjimmy.ai/api/chat"
@@ -29,6 +30,25 @@ JIMMY_MODELS = "https://chatjimmy.ai/api/models"
 DEFAULT_MODEL = "llama3.1-8B"
 HOST = os.environ.get("HOST", "0.0.0.0")
 PORT = int(os.environ.get("PORT", "8787"))
+_REPO_ROOT = Path(__file__).resolve().parent
+_OPENAPI_CANDIDATES = (
+    _REPO_ROOT / "openapi.yaml",
+    _REPO_ROOT.parent / "openapi.yaml",
+)
+
+
+def _resolve_spec(filename: str, env_key: str) -> str:
+    if os.environ.get(env_key):
+        return os.environ[env_key]
+    for base in (_REPO_ROOT, _REPO_ROOT.parent):
+        path = base / filename
+        if path.exists():
+            return str(path)
+    return str(_REPO_ROOT / filename)
+
+
+OPENAPI_YAML = _resolve_spec("openapi.yaml", "OPENAPI_YAML")
+OPENAPI_JSON = _resolve_spec("openapi.json", "OPENAPI_JSON")
 
 STATS_RE = re.compile(r"<\|stats\|>([\s\S]*?)<\|/stats\|>")
 TOOL_RE = re.compile(r"<tool_call>\s*(\{.*?\})\s*</tool_call>", re.DOTALL | re.I)
@@ -261,6 +281,14 @@ class Handler(BaseHTTPRequestHandler):
     def _json(self, status: int, obj: Any) -> None:
         self._send(status, json.dumps(obj).encode(), "application/json; charset=utf-8")
 
+    def _serve_file(self, path: str, content_type: str) -> None:
+        try:
+            with open(path, "rb") as f:
+                data = f.read()
+        except OSError:
+            return self._json(404, {"error": {"message": f"Spec not found: {path}", "type": "invalid_request_error"}})
+        self._send(200, data, content_type)
+
     def do_OPTIONS(self) -> None:  # noqa: N802
         self.send_response(204)
         self._cors()
@@ -271,6 +299,10 @@ class Handler(BaseHTTPRequestHandler):
         path = self.path.split("?", 1)[0].rstrip("/") or "/"
         if path in ("/", "/health"):
             return self._json(200, {"ok": True, "proxy": "chatjimmy.ai", "model": DEFAULT_MODEL})
+        if path in ("/openapi.yaml", "/docs/openapi.yaml"):
+            return self._serve_file(OPENAPI_YAML, "application/yaml; charset=utf-8")
+        if path in ("/openapi.json", "/docs/openapi.json"):
+            return self._serve_file(OPENAPI_JSON, "application/json; charset=utf-8")
         if path in ("/v1/models", "/api/models"):
             try:
                 status, _, body = http_json(JIMMY_MODELS)
@@ -328,6 +360,8 @@ def main() -> None:
     print("  GET  /health")
     print("  GET  /v1/models")
     print("  POST /v1/chat/completions")
+    print("  GET  /openapi.yaml")
+    print("  GET  /openapi.json")
     server.serve_forever()
 
 

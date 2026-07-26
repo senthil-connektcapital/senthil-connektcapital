@@ -19,11 +19,13 @@ r = client.chat.completions.create(
 print(r.choices[0].message.content)
 ```
 
-See [SDK.md](./SDK.md), `examples/`, and `tests/test_sample_usage.py` for runnable sample usage.
+See [SDK.md](./SDK.md), [docs/](./docs/) (deploy + HTTP API + **OpenAPI**), `examples/`, and `tests/test_sample_usage.py`.
 
 **Browser / CORS:** chatjimmy blocks browser CORS — use [`singlefile/`](./singlefile/) (Python proxy or Docker).
 
-**Docker:** `docker pull ghcr.io/senthil-connektcapital/jimmy-proxy:latest` (see `Dockerfile` + `.github/workflows/docker-publish.yml`).
+**Docker:** `docker pull ghcr.io/senthil-connektcapital/jimmy-proxy:latest` — see [docs/DEPLOY.md](./docs/DEPLOY.md)
+
+**OpenAPI:** [openapi.yaml](./openapi.yaml) · live at `/openapi.yaml` on a running proxy
 
 <!--
 **senthil-connektcapital/senthil-connektcapital** is a ✨ _special_ ✨ repository because its `README.md` (this file) appears on your GitHub profile.
