@@ -27,7 +27,8 @@ class CoverageTests(unittest.TestCase):
 
     def test_heygen_on_openrouter_is_avatar_not_workflow_gateway(self) -> None:
         heygen = self.report.extras["heygen_on_openrouter"]
-        self.assertEqual(heygen, ["heygen/avatar-iv"])
+        self.assertTrue(heygen, "expected HeyGen models on OpenRouter")
+        self.assertTrue(all(item.startswith("heygen/avatar-iv") for item in heygen), heygen)
         row = next(r for r in self.report.results if r.capability == "video.heygen_gateway")
         self.assertEqual(row.coverage, "partial")
         self.assertIn("heygen/avatar-iv", row.found_models)

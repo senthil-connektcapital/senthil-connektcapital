@@ -86,8 +86,10 @@ def run_comparison() -> ComparisonReport:
 
     extras = {
         "heygen_on_openrouter": sorted(i for i in catalog if i.startswith("heygen/")),
-        "kling_on_openrouter": sorted(i for i in catalog if "kling" in i),
-        "higgsfield_on_openrouter": sorted(i for i in catalog if "higgs" in i),
+        "kling_on_openrouter": sorted(
+            i for i in catalog if i.startswith("kwaivgi/kling") or "/kling-" in i
+        ),
+        "higgsfield_on_openrouter": sorted(i for i in catalog if "higgsfield" in i),
         "elevenlabs_on_openrouter": sorted(i for i in catalog if "eleven" in i),
         "suno_on_openrouter": sorted(i for i in catalog if "suno" in i),
         "live_failures": [r.capability for r in results if not r.live_ok],
