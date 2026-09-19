@@ -1,0 +1,425 @@
+openapi: 3.0.3
+info:
+  title: Jimmy Proxy API
+  description: |
+    OpenAI-compatible HTTP API for [chatjimmy.ai](https://chatjimmy.ai) (Llama 3.1 8B).
+
+    Deploy via Docker:
+    ```bash
+    docker run --rm -p 8787:8787 ghcr.io/senthil-connektcapital/jimmy-proxy:latest
+    ```
+
+    - **Base URL:** `http://localhost:8787` (or your deployment host)
+    - **Auth:** none required today
+    - **CORS:** enabled (`Access-Control-Allow-Origin: *`) — safe to call from browsers
+    - **Upstream:** `https://chatjimmy.ai/api/chat`
+
+    Tool calling and structured outputs are implemented via prompt injection + parsing
+  version: 0.2.0
+  contact:
+    name: senthil-connektcapital
+    url: https://github.com/senthil-connektcapital/senthil-connektcapital
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: http://localhost:8787
+    description: Local Docker default
+  - url: https://your-host.example.com
+    description: Your deployment
+
+tags:
+  - name: Health
+    description: Liveness / readiness
+  - name: Models
+    description: List available models
+  - name: Chat
+    description: Chat completions (OpenAI-compatible)
+
+paths:
+  /health:
+    get:
+      tags: [Health]
+      summary: Health check
+      operationId: healthCheck
+      responses:
+        "200":
+          description: Service is up
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthResponse"
+              example:
+                ok: true
+                proxy: chatjimmy.ai
+                model: llama3.1-8B
+
+  /v1/models:
+    get:
+      tags: [Models]
+      summary: List models
+      description: OpenAI-compatible models list (proxied from chatjimmy.ai).
+      operationId: listModels
+      responses:
+        "200":
+          description: Model list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ModelList"
+        "502":
+          $ref: "#/components/responses/UpstreamError"
+
+  /v1/chat/completions:
+    post:
+      tags: [Chat]
+      summary: Create chat completion
+      description: |
+        OpenAI-compatible chat completion. Supports:
+        - plain text chat
+        - `tools` / `tool_choice` (parsed into `tool_calls`)
+        - `response_format` (`json_object` or `json_schema`)
+
+        **Not supported in Docker proxy:** `stream: true` (use Cloudflare Worker build for SSE).
+      operationId: createChatCompletion
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateChatCompletionRequest"
+            examples:
+              basic:
+                summary: Simple chat
+                value:
+                  model: llama3.1-8B
+                  messages:
+                    - role: user
+                      content: Say hello in one sentence.
+              tools:
+                summary: Tool calling
+                value:
+                  model: llama3.1-8B
+                  messages:
+                    - role: user
+                      content: What's the weather in Paris?
+                  tools:
+                    - type: function
+                      function:
+                        name: get_weather
+                        description: Get weather for a city
+                        parameters:
+                          type: object
+                          properties:
+                            city:
+                              type: string
+                          required: [city]
+                  tool_choice: auto
+              json_object:
+                summary: Structured JSON object
+                value:
+                  model: llama3.1-8B
+                  messages:
+                    - role: user
+                      content: Return city and country for France's capital as JSON.
+                  response_format:
+                    type: json_object
+      responses:
+        "200":
+          description: Chat completion
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChatCompletion"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "502":
+          $ref: "#/components/responses/UpstreamError"
+
+  /openapi.yaml:
+    get:
+      tags: [Health]
+      summary: OpenAPI specification (YAML)
+      operationId: getOpenApiYaml
+      responses:
+        "200":
+          description: OpenAPI 3.0 document
+          content:
+            application/yaml:
+              schema:
+                type: string
+
+  /openapi.json:
+    get:
+      tags: [Health]
+      summary: OpenAPI specification (JSON)
+      operationId: getOpenApiJson
+      responses:
+        "200":
+          description: OpenAPI 3.0 document
+          content:
+            application/json:
+              schema:
+                type: object
+
+components:
+  responses:
+    BadRequest:
+      description: Invalid request
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    UpstreamError:
+      description: Upstream chatjimmy.ai error
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+
+  schemas:
+    HealthResponse:
+      type: object
+      properties:
+        ok:
+          type: boolean
+        proxy:
+          type: string
+        model:
+          type: string
+      required: [ok]
+
+    ModelList:
+      type: object
+      properties:
+        object:
+          type: string
+          example: list
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/Model"
+      required: [object, data]
+
+    Model:
+      type: object
+      properties:
+        id:
+          type: string
+          example: llama3.1-8B
+        object:
+          type: string
+          example: model
+        created:
+          type: integer
+        owned_by:
+          type: string
+      required: [id, object]
+
+    CreateChatCompletionRequest:
+      type: object
+      required: [messages]
+      properties:
+        model:
+          type: string
+          default: llama3.1-8B
+          example: llama3.1-8B
+        messages:
+          type: array
+          items:
+            $ref: "#/components/schemas/ChatMessage"
+          minItems: 1
+        stream:
+          type: boolean
+          default: false
+          description: Not supported by Docker proxy (returns 400).
+        top_k:
+          type: integer
+          minimum: 1
+          maximum: 8
+          default: 8
+          description: Maps to chatjimmy `chatOptions.topK`.
+        system_prompt:
+          type: string
+          description: Extra system prompt (merged with any system messages).
+        tools:
+          type: array
+          items:
+            $ref: "#/components/schemas/Tool"
+        tool_choice:
+          oneOf:
+            - type: string
+              enum: [none, auto, required]
+            - $ref: "#/components/schemas/ToolChoiceFunction"
+        response_format:
+          $ref: "#/components/schemas/ResponseFormat"
+        attachment:
+          nullable: true
+          description: chatjimmy attachment field (usually null).
+
+    ChatMessage:
+      type: object
+      required: [role]
+      properties:
+        role:
+          type: string
+          enum: [system, user, assistant, tool]
+        content:
+          type: string
+          nullable: true
+        name:
+          type: string
+          description: Tool name (for role=tool).
+        tool_call_id:
+          type: string
+          description: Tool call id (for role=tool).
+        tool_calls:
+          type: array
+          items:
+            $ref: "#/components/schemas/ToolCall"
+
+    Tool:
+      type: object
+      properties:
+        type:
+          type: string
+          enum: [function]
+        function:
+          $ref: "#/components/schemas/FunctionDefinition"
+
+    FunctionDefinition:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        parameters:
+          type: object
+          description: JSON Schema object for function arguments.
+
+    ToolChoiceFunction:
+      type: object
+      properties:
+        type:
+          type: string
+          enum: [function]
+        function:
+          type: object
+          properties:
+            name:
+              type: string
+
+    ResponseFormat:
+      oneOf:
+        - type: object
+          properties:
+            type:
+              type: string
+              enum: [json_object]
+          required: [type]
+        - type: object
+          properties:
+            type:
+              type: string
+              enum: [json_schema]
+            json_schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                strict:
+                  type: boolean
+                schema:
+                  type: object
+              required: [schema]
+          required: [type, json_schema]
+
+    ChatCompletion:
+      type: object
+      properties:
+        id:
+          type: string
+        object:
+          type: string
+          example: chat.completion
+        created:
+          type: integer
+        model:
+          type: string
+        choices:
+          type: array
+          items:
+            $ref: "#/components/schemas/Choice"
+        usage:
+          $ref: "#/components/schemas/Usage"
+      required: [id, object, created, model, choices]
+
+    Choice:
+      type: object
+      properties:
+        index:
+          type: integer
+        message:
+          $ref: "#/components/schemas/AssistantMessage"
+        finish_reason:
+          type: string
+          enum: [stop, tool_calls, length]
+
+    AssistantMessage:
+      type: object
+      properties:
+        role:
+          type: string
+          enum: [assistant]
+        content:
+          type: string
+          nullable: true
+        tool_calls:
+          type: array
+          items:
+            $ref: "#/components/schemas/ToolCall"
+        parsed:
+          description: Parsed JSON when response_format is set (dict or object).
+          nullable: true
+
+    ToolCall:
+      type: object
+      properties:
+        id:
+          type: string
+        type:
+          type: string
+          enum: [function]
+        function:
+          type: object
+          properties:
+            name:
+              type: string
+            arguments:
+              type: string
+              description: JSON string of arguments.
+
+    Usage:
+      type: object
+      properties:
+        prompt_tokens:
+          type: integer
+        completion_tokens:
+          type: integer
+        total_tokens:
+          type: integer
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            message:
+              type: string
+            type:
+              type: string
+              enum: [invalid_request_error, api_error]
