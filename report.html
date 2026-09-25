@@ -1,0 +1,721 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Arny metrics - current cut</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+  <style>
+    :root {
+      --bg: #f7f6f3; --surface: #fff; --ink: #1a1a1a; --muted: #5c5c5c; --line: #e4e2dc;
+      --accent: #0b6e4f; --accent-2: #2f5d8a;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: "Segoe UI", system-ui, sans-serif; color: var(--ink);
+      background: radial-gradient(ellipse 80% 50% at 10% -10%, #e8efe9 0%, transparent 55%), var(--bg); line-height: 1.45; }
+    .page { max-width: 1080px; margin: 0 auto; padding: 40px 24px 64px; }
+    h1 { font-size: 1.75rem; margin: 0 0 8px; }
+    .meta { color: var(--muted); margin: 0 0 24px; }
+    .controls { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 16px 18px; margin-bottom: 20px; }
+    .controls h2 { margin: 0 0 12px; font-size: 1rem; }
+    .date-row { display: grid; grid-template-columns: 1fr 1fr auto; gap: 16px; align-items: end; }
+    label { display: block; font-size: 0.82rem; color: var(--muted); margin-bottom: 4px; }
+    input[type=date] { width: 100%; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; font: inherit; }
+    .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 24px; }
+    .stat { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; }
+    .stat .label { font-size: 0.75rem; text-transform: uppercase; color: var(--muted); }
+    .stat .value { font-size: 1.5rem; font-weight: 650; font-variant-numeric: tabular-nums; }
+    section.card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 20px; margin-bottom: 24px; }
+    section.card h2 { margin: 0 0 4px; font-size: 1.15rem; }
+    section.card .sub { margin: 0 0 16px; color: var(--muted); font-size: 0.9rem; }
+    section.card.impact { border-color: #e8c9a8; background: #fffaf5; }
+    .chart-wrap { position: relative; height: 320px; }
+    .toolbar { display: flex; justify-content: space-between; align-items: center; margin: 12px 0 8px; }
+    button { border: 1px solid var(--line); background: #fafaf8; border-radius: 8px; padding: 8px 12px; cursor: pointer; }
+    button.copied { border-color: var(--accent); color: var(--accent); }
+    .table-scroll { max-height: 300px; overflow: auto; border: 1px solid var(--line); border-radius: 8px; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
+    th, td { padding: 8px 12px; border-bottom: 1px solid var(--line); }
+    th { position: sticky; top: 0; background: #f3f2ee; }
+    td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+    footer { color: var(--muted); font-size: 0.82rem; }
+    @media (max-width: 720px) { .stats, .date-row { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <header>
+      <h1>Arny metrics - current cut</h1>
+      <p class="meta">Snapshot 2026-06-01 to 2026-09-25 (UTC) - prod + store exports</p>
+    </header>
+
+    <div class="controls">
+      <h2>Date range (calendar)</h2>
+      <div class="date-row">
+        <div>
+          <label for="startDate">Start date</label>
+          <input type="date" id="startDate" min="2026-06-01" max="2026-09-25" value="2026-06-01" />
+        </div>
+        <div>
+          <label for="endDate">End date</label>
+          <input type="date" id="endDate" min="2026-06-01" max="2026-09-25" value="2026-09-25" />
+        </div>
+        <div>
+          <button type="button" id="resetDates">Full range</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="stats" id="rangeStats">
+      <div class="stat"><div class="label">DAU (range end)</div><div class="value" id="statDau">9</div></div>
+      <div class="stat"><div class="label">Active 30d (range end)</div><div class="value" id="statA30">56</div></div>
+      <div class="stat"><div class="label">Paid subs (range end)</div><div class="value" id="statPaid">10</div></div>
+    </div>
+
+    
+    <section class="card impact">
+      <h2>What changed since previous report (2026-09-18)</h2>
+      <p class="sub">Point-in-time comparison at the previous cut date vs latest available in this pack.</p>
+      <div class="table-scroll">
+        <table id="impactTable">
+          <thead>
+            <tr>
+              <th>Metric</th>
+              <th class="num">At previous cut</th>
+              <th class="num">Latest</th>
+              <th class="num">Change</th>
+              <th class="num">% change</th>
+            </tr>
+          </thead>
+          <tbody>
+          <tr><td>DAU</td><td class="num">10</td><td class="num">9</td><td class="num">-1</td><td class="num">-10.0%</td></tr>
+          <tr><td>Active users (30d)</td><td class="num">54</td><td class="num">56</td><td class="num">+2</td><td class="num">+3.7%</td></tr>
+          <tr><td>Paid subscribers</td><td class="num">9</td><td class="num">10</td><td class="num">+1</td><td class="num">+11.1%</td></tr>
+          <tr><td>Play install base</td><td class="num">96</td><td class="num">90</td><td class="num">-6</td><td class="num">-6.2%</td></tr>
+          <tr><td>iOS downloads (period sum)</td><td class="num">41</td><td class="num">44</td><td class="num">+3</td><td class="num">+7.3%</td></tr>
+          <tr><td>iOS product page views (period sum)</td><td class="num">68</td><td class="num">103</td><td class="num">+35</td><td class="num">+51.5%</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="toolbar">
+        <button type="button" id="copyImpact">Copy table</button>
+      </div>
+    </section>
+
+
+    <section class="card">
+      <h2>Active users</h2>
+      <p class="sub">DAU and rolling 30-day unique token users (prod).</p>
+      <div class="chart-wrap"><canvas id="activeChart"></canvas></div>
+      <div class="toolbar"><span>Data table (full period)</span><button type="button" data-copy="activeTable">Copy table</button></div>
+      <div class="table-scroll"><table id="activeTable"><thead><tr><th>Date</th><th class="num">DAU</th><th class="num">Active 30d</th></tr></thead><tbody>
+          <tr><td>2026-06-01</td><td class="num">17</td><td class="num">75</td></tr>
+          <tr><td>2026-06-02</td><td class="num">17</td><td class="num">73</td></tr>
+          <tr><td>2026-06-03</td><td class="num">19</td><td class="num">75</td></tr>
+          <tr><td>2026-06-04</td><td class="num">19</td><td class="num">77</td></tr>
+          <tr><td>2026-06-05</td><td class="num">18</td><td class="num">79</td></tr>
+          <tr><td>2026-06-06</td><td class="num">16</td><td class="num">79</td></tr>
+          <tr><td>2026-06-07</td><td class="num">16</td><td class="num">78</td></tr>
+          <tr><td>2026-06-08</td><td class="num">18</td><td class="num">75</td></tr>
+          <tr><td>2026-06-09</td><td class="num">15</td><td class="num">76</td></tr>
+          <tr><td>2026-06-10</td><td class="num">16</td><td class="num">78</td></tr>
+          <tr><td>2026-06-11</td><td class="num">18</td><td class="num">76</td></tr>
+          <tr><td>2026-06-12</td><td class="num">14</td><td class="num">77</td></tr>
+          <tr><td>2026-06-13</td><td class="num">12</td><td class="num">74</td></tr>
+          <tr><td>2026-06-14</td><td class="num">15</td><td class="num">71</td></tr>
+          <tr><td>2026-06-15</td><td class="num">14</td><td class="num">71</td></tr>
+          <tr><td>2026-06-16</td><td class="num">20</td><td class="num">71</td></tr>
+          <tr><td>2026-06-17</td><td class="num">12</td><td class="num">66</td></tr>
+          <tr><td>2026-06-18</td><td class="num">17</td><td class="num">68</td></tr>
+          <tr><td>2026-06-19</td><td class="num">10</td><td class="num">68</td></tr>
+          <tr><td>2026-06-20</td><td class="num">14</td><td class="num">69</td></tr>
+          <tr><td>2026-06-21</td><td class="num">14</td><td class="num">69</td></tr>
+          <tr><td>2026-06-22</td><td class="num">15</td><td class="num">68</td></tr>
+          <tr><td>2026-06-23</td><td class="num">15</td><td class="num">68</td></tr>
+          <tr><td>2026-06-24</td><td class="num">15</td><td class="num">68</td></tr>
+          <tr><td>2026-06-25</td><td class="num">17</td><td class="num">64</td></tr>
+          <tr><td>2026-06-26</td><td class="num">17</td><td class="num">62</td></tr>
+          <tr><td>2026-06-27</td><td class="num">14</td><td class="num">61</td></tr>
+          <tr><td>2026-06-28</td><td class="num">15</td><td class="num">59</td></tr>
+          <tr><td>2026-06-29</td><td class="num">22</td><td class="num">64</td></tr>
+          <tr><td>2026-06-30</td><td class="num">16</td><td class="num">65</td></tr>
+          <tr><td>2026-07-01</td><td class="num">19</td><td class="num">66</td></tr>
+          <tr><td>2026-07-02</td><td class="num">13</td><td class="num">66</td></tr>
+          <tr><td>2026-07-03</td><td class="num">17</td><td class="num">65</td></tr>
+          <tr><td>2026-07-04</td><td class="num">13</td><td class="num">64</td></tr>
+          <tr><td>2026-07-05</td><td class="num">11</td><td class="num">62</td></tr>
+          <tr><td>2026-07-06</td><td class="num">14</td><td class="num">60</td></tr>
+          <tr><td>2026-07-07</td><td class="num">16</td><td class="num">59</td></tr>
+          <tr><td>2026-07-08</td><td class="num">18</td><td class="num">59</td></tr>
+          <tr><td>2026-07-09</td><td class="num">14</td><td class="num">58</td></tr>
+          <tr><td>2026-07-10</td><td class="num">13</td><td class="num">57</td></tr>
+          <tr><td>2026-07-11</td><td class="num">10</td><td class="num">55</td></tr>
+          <tr><td>2026-07-12</td><td class="num">12</td><td class="num">55</td></tr>
+          <tr><td>2026-07-13</td><td class="num">14</td><td class="num">55</td></tr>
+          <tr><td>2026-07-14</td><td class="num">11</td><td class="num">54</td></tr>
+          <tr><td>2026-07-15</td><td class="num">13</td><td class="num">54</td></tr>
+          <tr><td>2026-07-16</td><td class="num">10</td><td class="num">52</td></tr>
+          <tr><td>2026-07-17</td><td class="num">13</td><td class="num">52</td></tr>
+          <tr><td>2026-07-18</td><td class="num">10</td><td class="num">51</td></tr>
+          <tr><td>2026-07-19</td><td class="num">12</td><td class="num">52</td></tr>
+          <tr><td>2026-07-20</td><td class="num">11</td><td class="num">51</td></tr>
+          <tr><td>2026-07-21</td><td class="num">15</td><td class="num">52</td></tr>
+          <tr><td>2026-07-22</td><td class="num">13</td><td class="num">52</td></tr>
+          <tr><td>2026-07-23</td><td class="num">12</td><td class="num">51</td></tr>
+          <tr><td>2026-07-24</td><td class="num">13</td><td class="num">50</td></tr>
+          <tr><td>2026-07-25</td><td class="num">15</td><td class="num">51</td></tr>
+          <tr><td>2026-07-26</td><td class="num">11</td><td class="num">52</td></tr>
+          <tr><td>2026-07-27</td><td class="num">19</td><td class="num">54</td></tr>
+          <tr><td>2026-07-28</td><td class="num">16</td><td class="num">54</td></tr>
+          <tr><td>2026-07-29</td><td class="num">12</td><td class="num">51</td></tr>
+          <tr><td>2026-07-30</td><td class="num">13</td><td class="num">51</td></tr>
+          <tr><td>2026-07-31</td><td class="num">18</td><td class="num">52</td></tr>
+          <tr><td>2026-08-01</td><td class="num">11</td><td class="num">53</td></tr>
+          <tr><td>2026-08-02</td><td class="num">10</td><td class="num">53</td></tr>
+          <tr><td>2026-08-03</td><td class="num">15</td><td class="num">54</td></tr>
+          <tr><td>2026-08-04</td><td class="num">15</td><td class="num">55</td></tr>
+          <tr><td>2026-08-05</td><td class="num">15</td><td class="num">56</td></tr>
+          <tr><td>2026-08-06</td><td class="num">15</td><td class="num">54</td></tr>
+          <tr><td>2026-08-07</td><td class="num">19</td><td class="num">55</td></tr>
+          <tr><td>2026-08-08</td><td class="num">11</td><td class="num">55</td></tr>
+          <tr><td>2026-08-09</td><td class="num">9</td><td class="num">54</td></tr>
+          <tr><td>2026-08-10</td><td class="num">17</td><td class="num">56</td></tr>
+          <tr><td>2026-08-11</td><td class="num">15</td><td class="num">56</td></tr>
+          <tr><td>2026-08-12</td><td class="num">11</td><td class="num">56</td></tr>
+          <tr><td>2026-08-13</td><td class="num">9</td><td class="num">56</td></tr>
+          <tr><td>2026-08-14</td><td class="num">15</td><td class="num">58</td></tr>
+          <tr><td>2026-08-15</td><td class="num">10</td><td class="num">59</td></tr>
+          <tr><td>2026-08-16</td><td class="num">9</td><td class="num">59</td></tr>
+          <tr><td>2026-08-17</td><td class="num">11</td><td class="num">61</td></tr>
+          <tr><td>2026-08-18</td><td class="num">19</td><td class="num">61</td></tr>
+          <tr><td>2026-08-19</td><td class="num">18</td><td class="num">61</td></tr>
+          <tr><td>2026-08-20</td><td class="num">13</td><td class="num">59</td></tr>
+          <tr><td>2026-08-21</td><td class="num">13</td><td class="num">59</td></tr>
+          <tr><td>2026-08-22</td><td class="num">13</td><td class="num">59</td></tr>
+          <tr><td>2026-08-23</td><td class="num">9</td><td class="num">59</td></tr>
+          <tr><td>2026-08-24</td><td class="num">15</td><td class="num">60</td></tr>
+          <tr><td>2026-08-25</td><td class="num">16</td><td class="num">62</td></tr>
+          <tr><td>2026-08-26</td><td class="num">11</td><td class="num">60</td></tr>
+          <tr><td>2026-08-27</td><td class="num">11</td><td class="num">59</td></tr>
+          <tr><td>2026-08-28</td><td class="num">11</td><td class="num">58</td></tr>
+          <tr><td>2026-08-29</td><td class="num">8</td><td class="num">56</td></tr>
+          <tr><td>2026-08-30</td><td class="num">12</td><td class="num">53</td></tr>
+          <tr><td>2026-08-31</td><td class="num">16</td><td class="num">53</td></tr>
+          <tr><td>2026-09-01</td><td class="num">15</td><td class="num">54</td></tr>
+          <tr><td>2026-09-02</td><td class="num">14</td><td class="num">54</td></tr>
+          <tr><td>2026-09-03</td><td class="num">14</td><td class="num">52</td></tr>
+          <tr><td>2026-09-04</td><td class="num">13</td><td class="num">50</td></tr>
+          <tr><td>2026-09-05</td><td class="num">11</td><td class="num">49</td></tr>
+          <tr><td>2026-09-06</td><td class="num">12</td><td class="num">48</td></tr>
+          <tr><td>2026-09-07</td><td class="num">14</td><td class="num">49</td></tr>
+          <tr><td>2026-09-08</td><td class="num">16</td><td class="num">51</td></tr>
+          <tr><td>2026-09-09</td><td class="num">15</td><td class="num">49</td></tr>
+          <tr><td>2026-09-10</td><td class="num">16</td><td class="num">50</td></tr>
+          <tr><td>2026-09-11</td><td class="num">13</td><td class="num">48</td></tr>
+          <tr><td>2026-09-12</td><td class="num">11</td><td class="num">48</td></tr>
+          <tr><td>2026-09-13</td><td class="num">10</td><td class="num">47</td></tr>
+          <tr><td>2026-09-14</td><td class="num">15</td><td class="num">50</td></tr>
+          <tr><td>2026-09-15</td><td class="num">17</td><td class="num">53</td></tr>
+          <tr><td>2026-09-16</td><td class="num">15</td><td class="num">53</td></tr>
+          <tr><td>2026-09-17</td><td class="num">13</td><td class="num">54</td></tr>
+          <tr><td>2026-09-18</td><td class="num">10</td><td class="num">54</td></tr>
+          <tr><td>2026-09-19</td><td class="num">14</td><td class="num">55</td></tr>
+          <tr><td>2026-09-20</td><td class="num">14</td><td class="num">55</td></tr>
+          <tr><td>2026-09-21</td><td class="num">16</td><td class="num">55</td></tr>
+          <tr><td>2026-09-22</td><td class="num">17</td><td class="num">56</td></tr>
+          <tr><td>2026-09-23</td><td class="num">19</td><td class="num">57</td></tr>
+          <tr><td>2026-09-24</td><td class="num">16</td><td class="num">55</td></tr>
+          <tr><td>2026-09-25</td><td class="num">9</td><td class="num">56</td></tr>
+      </tbody></table></div>
+    </section>
+    <section class="card">
+      <h2>Paid subscribers (Stripe)</h2>
+      <div class="chart-wrap"><canvas id="paidChart"></canvas></div>
+      <div class="toolbar"><span>Data table (full period)</span><button type="button" data-copy="paidTable">Copy table</button></div>
+      <div class="table-scroll"><table id="paidTable"><thead><tr><th>Date</th><th class="num">Paid</th></tr></thead><tbody>
+          <tr><td>2026-06-01</td><td class="num">5</td></tr>
+          <tr><td>2026-06-02</td><td class="num">5</td></tr>
+          <tr><td>2026-06-03</td><td class="num">5</td></tr>
+          <tr><td>2026-06-04</td><td class="num">5</td></tr>
+          <tr><td>2026-06-05</td><td class="num">5</td></tr>
+          <tr><td>2026-06-06</td><td class="num">5</td></tr>
+          <tr><td>2026-06-07</td><td class="num">5</td></tr>
+          <tr><td>2026-06-08</td><td class="num">5</td></tr>
+          <tr><td>2026-06-09</td><td class="num">5</td></tr>
+          <tr><td>2026-06-10</td><td class="num">5</td></tr>
+          <tr><td>2026-06-11</td><td class="num">5</td></tr>
+          <tr><td>2026-06-12</td><td class="num">5</td></tr>
+          <tr><td>2026-06-13</td><td class="num">5</td></tr>
+          <tr><td>2026-06-14</td><td class="num">5</td></tr>
+          <tr><td>2026-06-15</td><td class="num">5</td></tr>
+          <tr><td>2026-06-16</td><td class="num">5</td></tr>
+          <tr><td>2026-06-17</td><td class="num">6</td></tr>
+          <tr><td>2026-06-18</td><td class="num">6</td></tr>
+          <tr><td>2026-06-19</td><td class="num">6</td></tr>
+          <tr><td>2026-06-20</td><td class="num">6</td></tr>
+          <tr><td>2026-06-21</td><td class="num">6</td></tr>
+          <tr><td>2026-06-22</td><td class="num">6</td></tr>
+          <tr><td>2026-06-23</td><td class="num">6</td></tr>
+          <tr><td>2026-06-24</td><td class="num">7</td></tr>
+          <tr><td>2026-06-25</td><td class="num">7</td></tr>
+          <tr><td>2026-06-26</td><td class="num">7</td></tr>
+          <tr><td>2026-06-27</td><td class="num">7</td></tr>
+          <tr><td>2026-06-28</td><td class="num">7</td></tr>
+          <tr><td>2026-06-29</td><td class="num">7</td></tr>
+          <tr><td>2026-06-30</td><td class="num">7</td></tr>
+          <tr><td>2026-07-01</td><td class="num">7</td></tr>
+          <tr><td>2026-07-02</td><td class="num">7</td></tr>
+          <tr><td>2026-07-03</td><td class="num">7</td></tr>
+          <tr><td>2026-07-04</td><td class="num">7</td></tr>
+          <tr><td>2026-07-05</td><td class="num">7</td></tr>
+          <tr><td>2026-07-06</td><td class="num">7</td></tr>
+          <tr><td>2026-07-07</td><td class="num">7</td></tr>
+          <tr><td>2026-07-08</td><td class="num">7</td></tr>
+          <tr><td>2026-07-09</td><td class="num">7</td></tr>
+          <tr><td>2026-07-10</td><td class="num">7</td></tr>
+          <tr><td>2026-07-11</td><td class="num">7</td></tr>
+          <tr><td>2026-07-12</td><td class="num">7</td></tr>
+          <tr><td>2026-07-13</td><td class="num">7</td></tr>
+          <tr><td>2026-07-14</td><td class="num">7</td></tr>
+          <tr><td>2026-07-15</td><td class="num">7</td></tr>
+          <tr><td>2026-07-16</td><td class="num">7</td></tr>
+          <tr><td>2026-07-17</td><td class="num">7</td></tr>
+          <tr><td>2026-07-18</td><td class="num">7</td></tr>
+          <tr><td>2026-07-19</td><td class="num">7</td></tr>
+          <tr><td>2026-07-20</td><td class="num">7</td></tr>
+          <tr><td>2026-07-21</td><td class="num">7</td></tr>
+          <tr><td>2026-07-22</td><td class="num">7</td></tr>
+          <tr><td>2026-07-23</td><td class="num">7</td></tr>
+          <tr><td>2026-07-24</td><td class="num">7</td></tr>
+          <tr><td>2026-07-25</td><td class="num">7</td></tr>
+          <tr><td>2026-07-26</td><td class="num">7</td></tr>
+          <tr><td>2026-07-27</td><td class="num">7</td></tr>
+          <tr><td>2026-07-28</td><td class="num">7</td></tr>
+          <tr><td>2026-07-29</td><td class="num">7</td></tr>
+          <tr><td>2026-07-30</td><td class="num">7</td></tr>
+          <tr><td>2026-07-31</td><td class="num">7</td></tr>
+          <tr><td>2026-08-01</td><td class="num">7</td></tr>
+          <tr><td>2026-08-02</td><td class="num">7</td></tr>
+          <tr><td>2026-08-03</td><td class="num">7</td></tr>
+          <tr><td>2026-08-04</td><td class="num">7</td></tr>
+          <tr><td>2026-08-05</td><td class="num">7</td></tr>
+          <tr><td>2026-08-06</td><td class="num">7</td></tr>
+          <tr><td>2026-08-07</td><td class="num">7</td></tr>
+          <tr><td>2026-08-08</td><td class="num">7</td></tr>
+          <tr><td>2026-08-09</td><td class="num">7</td></tr>
+          <tr><td>2026-08-10</td><td class="num">7</td></tr>
+          <tr><td>2026-08-11</td><td class="num">7</td></tr>
+          <tr><td>2026-08-12</td><td class="num">7</td></tr>
+          <tr><td>2026-08-13</td><td class="num">7</td></tr>
+          <tr><td>2026-08-14</td><td class="num">7</td></tr>
+          <tr><td>2026-08-15</td><td class="num">7</td></tr>
+          <tr><td>2026-08-16</td><td class="num">7</td></tr>
+          <tr><td>2026-08-17</td><td class="num">7</td></tr>
+          <tr><td>2026-08-18</td><td class="num">7</td></tr>
+          <tr><td>2026-08-19</td><td class="num">7</td></tr>
+          <tr><td>2026-08-20</td><td class="num">7</td></tr>
+          <tr><td>2026-08-21</td><td class="num">8</td></tr>
+          <tr><td>2026-08-22</td><td class="num">8</td></tr>
+          <tr><td>2026-08-23</td><td class="num">8</td></tr>
+          <tr><td>2026-08-24</td><td class="num">8</td></tr>
+          <tr><td>2026-08-25</td><td class="num">8</td></tr>
+          <tr><td>2026-08-26</td><td class="num">8</td></tr>
+          <tr><td>2026-08-27</td><td class="num">8</td></tr>
+          <tr><td>2026-08-28</td><td class="num">8</td></tr>
+          <tr><td>2026-08-29</td><td class="num">8</td></tr>
+          <tr><td>2026-08-30</td><td class="num">8</td></tr>
+          <tr><td>2026-08-31</td><td class="num">8</td></tr>
+          <tr><td>2026-09-01</td><td class="num">8</td></tr>
+          <tr><td>2026-09-02</td><td class="num">8</td></tr>
+          <tr><td>2026-09-03</td><td class="num">8</td></tr>
+          <tr><td>2026-09-04</td><td class="num">8</td></tr>
+          <tr><td>2026-09-05</td><td class="num">8</td></tr>
+          <tr><td>2026-09-06</td><td class="num">8</td></tr>
+          <tr><td>2026-09-07</td><td class="num">8</td></tr>
+          <tr><td>2026-09-08</td><td class="num">8</td></tr>
+          <tr><td>2026-09-09</td><td class="num">8</td></tr>
+          <tr><td>2026-09-10</td><td class="num">8</td></tr>
+          <tr><td>2026-09-11</td><td class="num">8</td></tr>
+          <tr><td>2026-09-12</td><td class="num">8</td></tr>
+          <tr><td>2026-09-13</td><td class="num">8</td></tr>
+          <tr><td>2026-09-14</td><td class="num">8</td></tr>
+          <tr><td>2026-09-15</td><td class="num">9</td></tr>
+          <tr><td>2026-09-16</td><td class="num">9</td></tr>
+          <tr><td>2026-09-17</td><td class="num">9</td></tr>
+          <tr><td>2026-09-18</td><td class="num">9</td></tr>
+          <tr><td>2026-09-19</td><td class="num">9</td></tr>
+          <tr><td>2026-09-20</td><td class="num">9</td></tr>
+          <tr><td>2026-09-21</td><td class="num">9</td></tr>
+          <tr><td>2026-09-22</td><td class="num">9</td></tr>
+          <tr><td>2026-09-23</td><td class="num">9</td></tr>
+          <tr><td>2026-09-24</td><td class="num">10</td></tr>
+          <tr><td>2026-09-25</td><td class="num">10</td></tr>
+      </tbody></table></div>
+    </section>
+    <section class="card">
+      <h2>Google Play - install base</h2>
+      <div class="chart-wrap"><canvas id="playChart"></canvas></div>
+      <div class="toolbar"><span>Data table (full period)</span><button type="button" data-copy="playTable">Copy table</button></div>
+      <div class="table-scroll"><table id="playTable"><thead><tr><th>Date</th><th class="num">Install base</th><th>Notes</th></tr></thead><tbody>
+          <tr><td>2026-06-01</td><td class="num">97</td><td></td></tr>
+          <tr><td>2026-06-02</td><td class="num">95</td><td></td></tr>
+          <tr><td>2026-06-03</td><td class="num">98</td><td></td></tr>
+          <tr><td>2026-06-04</td><td class="num">95</td><td></td></tr>
+          <tr><td>2026-06-05</td><td class="num">107</td><td></td></tr>
+          <tr><td>2026-06-06</td><td class="num">103</td><td></td></tr>
+          <tr><td>2026-06-07</td><td class="num">106</td><td></td></tr>
+          <tr><td>2026-06-08</td><td class="num">100</td><td></td></tr>
+          <tr><td>2026-06-09</td><td class="num">104</td><td></td></tr>
+          <tr><td>2026-06-10</td><td class="num">104</td><td></td></tr>
+          <tr><td>2026-06-11</td><td class="num">100</td><td></td></tr>
+          <tr><td>2026-06-12</td><td class="num">106</td><td></td></tr>
+          <tr><td>2026-06-13</td><td class="num">105</td><td></td></tr>
+          <tr><td>2026-06-14</td><td class="num">102</td><td></td></tr>
+          <tr><td>2026-06-15</td><td class="num">103</td><td>Roll-out of release: Started roll-out of 102 (1.1.5) at 100%.</td></tr>
+          <tr><td>2026-06-16</td><td class="num">102</td><td></td></tr>
+          <tr><td>2026-06-17</td><td class="num">103</td><td></td></tr>
+          <tr><td>2026-06-18</td><td class="num">98</td><td>Roll-out of release: Started roll-out of 103 (1.1.5) at 100%.</td></tr>
+          <tr><td>2026-06-19</td><td class="num">100</td><td></td></tr>
+          <tr><td>2026-06-20</td><td class="num">102</td><td></td></tr>
+          <tr><td>2026-06-21</td><td class="num">106</td><td></td></tr>
+          <tr><td>2026-06-22</td><td class="num">103</td><td></td></tr>
+          <tr><td>2026-06-23</td><td class="num">105</td><td></td></tr>
+          <tr><td>2026-06-24</td><td class="num">98</td><td></td></tr>
+          <tr><td>2026-06-25</td><td class="num">101</td><td></td></tr>
+          <tr><td>2026-06-26</td><td class="num">98</td><td></td></tr>
+          <tr><td>2026-06-27</td><td class="num">102</td><td></td></tr>
+          <tr><td>2026-06-28</td><td class="num">97</td><td></td></tr>
+          <tr><td>2026-06-29</td><td class="num">109</td><td>Roll-out of release: Started roll-out of 105 (1.1.5) at 100%.</td></tr>
+          <tr><td>2026-06-30</td><td class="num">106</td><td></td></tr>
+          <tr><td>2026-07-01</td><td class="num">109</td><td></td></tr>
+          <tr><td>2026-07-02</td><td class="num">102</td><td></td></tr>
+          <tr><td>2026-07-03</td><td class="num">106</td><td></td></tr>
+          <tr><td>2026-07-04</td><td class="num">106</td><td></td></tr>
+          <tr><td>2026-07-05</td><td class="num">103</td><td></td></tr>
+          <tr><td>2026-07-06</td><td class="num">104</td><td></td></tr>
+          <tr><td>2026-07-07</td><td class="num">99</td><td></td></tr>
+          <tr><td>2026-07-08</td><td class="num">112</td><td></td></tr>
+          <tr><td>2026-07-09</td><td class="num">102</td><td></td></tr>
+          <tr><td>2026-07-10</td><td class="num">109</td><td></td></tr>
+          <tr><td>2026-07-11</td><td class="num">100</td><td></td></tr>
+          <tr><td>2026-07-12</td><td class="num">100</td><td></td></tr>
+          <tr><td>2026-07-13</td><td class="num">105</td><td></td></tr>
+          <tr><td>2026-07-14</td><td class="num">104</td><td></td></tr>
+          <tr><td>2026-07-15</td><td class="num">105</td><td></td></tr>
+          <tr><td>2026-07-16</td><td class="num">110</td><td></td></tr>
+          <tr><td>2026-07-17</td><td class="num">103</td><td></td></tr>
+          <tr><td>2026-07-18</td><td class="num">101</td><td></td></tr>
+          <tr><td>2026-07-19</td><td class="num">98</td><td></td></tr>
+          <tr><td>2026-07-20</td><td class="num">100</td><td></td></tr>
+          <tr><td>2026-07-21</td><td class="num">97</td><td></td></tr>
+          <tr><td>2026-07-22</td><td class="num">100</td><td></td></tr>
+          <tr><td>2026-07-23</td><td class="num">103</td><td></td></tr>
+          <tr><td>2026-07-24</td><td class="num">103</td><td></td></tr>
+          <tr><td>2026-07-25</td><td class="num">96</td><td></td></tr>
+          <tr><td>2026-07-26</td><td class="num">102</td><td></td></tr>
+          <tr><td>2026-07-27</td><td class="num">99</td><td></td></tr>
+          <tr><td>2026-07-28</td><td class="num">93</td><td></td></tr>
+          <tr><td>2026-07-29</td><td class="num">97</td><td></td></tr>
+          <tr><td>2026-07-30</td><td class="num">98</td><td></td></tr>
+          <tr><td>2026-07-31</td><td class="num">97</td><td></td></tr>
+          <tr><td>2026-08-01</td><td class="num">102</td><td></td></tr>
+          <tr><td>2026-08-02</td><td class="num">99</td><td></td></tr>
+          <tr><td>2026-08-03</td><td class="num">103</td><td></td></tr>
+          <tr><td>2026-08-04</td><td class="num">101</td><td></td></tr>
+          <tr><td>2026-08-05</td><td class="num">97</td><td></td></tr>
+          <tr><td>2026-08-06</td><td class="num">95</td><td></td></tr>
+          <tr><td>2026-08-07</td><td class="num">101</td><td></td></tr>
+          <tr><td>2026-08-08</td><td class="num">98</td><td></td></tr>
+          <tr><td>2026-08-09</td><td class="num">97</td><td></td></tr>
+          <tr><td>2026-08-10</td><td class="num">95</td><td></td></tr>
+          <tr><td>2026-08-11</td><td class="num">98</td><td></td></tr>
+          <tr><td>2026-08-12</td><td class="num">96</td><td>Roll-out of release: Started roll-out of 107 (1.1.6) at 100%.</td></tr>
+          <tr><td>2026-08-13</td><td class="num">92</td><td></td></tr>
+          <tr><td>2026-08-14</td><td class="num">98</td><td></td></tr>
+          <tr><td>2026-08-15</td><td class="num">99</td><td></td></tr>
+          <tr><td>2026-08-16</td><td class="num">99</td><td></td></tr>
+          <tr><td>2026-08-17</td><td class="num">102</td><td></td></tr>
+          <tr><td>2026-08-18</td><td class="num">95</td><td></td></tr>
+          <tr><td>2026-08-19</td><td class="num">92</td><td></td></tr>
+          <tr><td>2026-08-20</td><td class="num">95</td><td></td></tr>
+          <tr><td>2026-08-21</td><td class="num">94</td><td></td></tr>
+          <tr><td>2026-08-22</td><td class="num">96</td><td></td></tr>
+          <tr><td>2026-08-23</td><td class="num">94</td><td></td></tr>
+          <tr><td>2026-08-24</td><td class="num">89</td><td></td></tr>
+          <tr><td>2026-08-25</td><td class="num">95</td><td></td></tr>
+          <tr><td>2026-08-26</td><td class="num">92</td><td></td></tr>
+          <tr><td>2026-08-27</td><td class="num">93</td><td></td></tr>
+          <tr><td>2026-08-28</td><td class="num">95</td><td></td></tr>
+          <tr><td>2026-08-29</td><td class="num">89</td><td></td></tr>
+          <tr><td>2026-08-30</td><td class="num">89</td><td></td></tr>
+          <tr><td>2026-08-31</td><td class="num">94</td><td></td></tr>
+          <tr><td>2026-09-01</td><td class="num">96</td><td></td></tr>
+          <tr><td>2026-09-02</td><td class="num">99</td><td></td></tr>
+          <tr><td>2026-09-03</td><td class="num">95</td><td></td></tr>
+          <tr><td>2026-09-04</td><td class="num">92</td><td></td></tr>
+          <tr><td>2026-09-05</td><td class="num">94</td><td></td></tr>
+          <tr><td>2026-09-06</td><td class="num">90</td><td></td></tr>
+          <tr><td>2026-09-07</td><td class="num">93</td><td></td></tr>
+          <tr><td>2026-09-08</td><td class="num">97</td><td></td></tr>
+          <tr><td>2026-09-09</td><td class="num">100</td><td></td></tr>
+          <tr><td>2026-09-10</td><td class="num">93</td><td></td></tr>
+          <tr><td>2026-09-11</td><td class="num">99</td><td></td></tr>
+          <tr><td>2026-09-12</td><td class="num">103</td><td></td></tr>
+          <tr><td>2026-09-13</td><td class="num">95</td><td></td></tr>
+          <tr><td>2026-09-14</td><td class="num">98</td><td></td></tr>
+          <tr><td>2026-09-15</td><td class="num">93</td><td></td></tr>
+          <tr><td>2026-09-16</td><td class="num">89</td><td></td></tr>
+          <tr><td>2026-09-17</td><td class="num">93</td><td></td></tr>
+          <tr><td>2026-09-18</td><td class="num">96</td><td></td></tr>
+          <tr><td>2026-09-19</td><td class="num">93</td><td></td></tr>
+          <tr><td>2026-09-20</td><td class="num">89</td><td></td></tr>
+          <tr><td>2026-09-21</td><td class="num">90</td><td></td></tr>
+      </tbody></table></div>
+    </section>
+    <section class="card">
+      <h2>App Store (iOS)</h2>
+      <p class="sub">Downloads and product page views (unique devices) overlaid.</p>
+      <div class="chart-wrap"><canvas id="iosChart"></canvas></div>
+      <div class="toolbar"><span>Data table (full period)</span><button type="button" data-copy="iosTable">Copy table</button></div>
+      <div class="table-scroll"><table id="iosTable"><thead><tr><th>Date</th><th class="num">Downloads</th><th class="num">Page views</th></tr></thead><tbody>
+          <tr><td>2026-06-01</td><td class="num">1</td><td class="num">6</td></tr>
+          <tr><td>2026-06-02</td><td class="num">0</td><td class="num">0</td></tr>
+          <tr><td>2026-06-03</td><td class="num">0</td><td class="num">0</td></tr>
+          <tr><td>2026-06-04</td><td class="num">2</td><td class="num">0</td></tr>
+          <tr><td>2026-06-05</td><td class="num">1</td><td class="num">2</td></tr>
+          <tr><td>2026-06-06</td><td class="num">1</td><td class="num">6</td></tr>
+          <tr><td>2026-06-07</td><td class="num">1</td><td class="num">1</td></tr>
+          <tr><td>2026-06-08</td><td class="num">1</td><td class="num">1</td></tr>
+          <tr><td>2026-06-09</td><td class="num">1</td><td class="num">1</td></tr>
+          <tr><td>2026-06-10</td><td class="num">0</td><td class="num">2</td></tr>
+          <tr><td>2026-06-11</td><td class="num">0</td><td class="num">2</td></tr>
+          <tr><td>2026-06-12</td><td class="num">0</td><td class="num">0</td></tr>
+          <tr><td>2026-06-13</td><td class="num">0</td><td class="num">0</td></tr>
+          <tr><td>2026-06-14</td><td class="num">0</td><td class="num">0</td></tr>
+          <tr><td>2026-06-15</td><td class="num">0</td><td class="num">0</td></tr>
+          <tr><td>2026-06-16</td><td class="num">0</td><td class="num">0</td></tr>
+          <tr><td>2026-06-17</td><td class="num">0</td><td class="num">2</td></tr>
+          <tr><td>2026-06-18</td><td class="num">0</td><td class="num">2</td></tr>
+          <tr><td>2026-06-19</td><td class="num">0</td><td class="num">0</td></tr>
+          <tr><td>2026-06-20</td><td class="num">0</td><td class="num">0</td></tr>
+          <tr><td>2026-06-21</td><td class="num">2</td><td class="num">1</td></tr>
+          <tr><td>2026-06-22</td><td class="num">0</td><td class="num">1</td></tr>
+          <tr><td>2026-06-23</td><td class="num">0</td><td class="num">0</td></tr>
+          <tr><td>2026-06-24</td><td class="num">0</td><td class="num">0</td></tr>
+          <tr><td>2026-06-25</td><td class="num">1</td><td class="num">0</td></tr>
+          <tr><td>2026-06-26</td><td class="num">1</td><td class="num">2</td></tr>
+          <tr><td>2026-06-27</td><td class="num">1</td><td class="num">1</td></tr>
+          <tr><td>2026-06-28</td><td class="num">0</td><td class="num">0</td></tr>
+          <tr><td>2026-06-29</td><td class="num">0</td><td class="num">0</td></tr>
+          <tr><td>2026-06-30</td><td class="num">0</td><td class="num">0</td></tr>
+          <tr><td>2026-07-01</td><td class="num">0</td><td class="num">4</td></tr>
+          <tr><td>2026-07-02</td><td class="num">0</td><td class="num">0</td></tr>
+          <tr><td>2026-07-03</td><td class="num">0</td><td class="num">0</td></tr>
+          <tr><td>2026-07-04</td><td class="num">0</td><td class="num">1</td></tr>
+          <tr><td>2026-07-05</td><td class="num">1</td><td class="num">1</td></tr>
+          <tr><td>2026-07-06</td><td class="num">0</td><td class="num">0</td></tr>
+          <tr><td>2026-07-07</td><td class="num">2</td><td class="num">2</td></tr>
+          <tr><td>2026-07-08</td><td class="num">0</td><td class="num">1</td></tr>
+          <tr><td>2026-07-09</td><td class="num">0</td><td class="num">3</td></tr>
+          <tr><td>2026-07-10</td><td class="num">0</td><td class="num">1</td></tr>
+          <tr><td>2026-07-11</td><td class="num">0</td><td class="num">0</td></tr>
+          <tr><td>2026-07-12</td><td class="num">0</td><td class="num">3</td></tr>
+          <tr><td>2026-07-13</td><td class="num">1</td><td class="num">0</td></tr>
+          <tr><td>2026-07-14</td><td class="num">0</td><td class="num">1</td></tr>
+          <tr><td>2026-07-15</td><td class="num">0</td><td class="num">0</td></tr>
+          <tr><td>2026-07-16</td><td class="num">0</td><td class="num">0</td></tr>
+          <tr><td>2026-07-17</td><td class="num">2</td><td class="num">1</td></tr>
+          <tr><td>2026-07-18</td><td class="num">0</td><td class="num">0</td></tr>
+          <tr><td>2026-07-19</td><td class="num">0</td><td class="num">0</td></tr>
+          <tr><td>2026-07-20</td><td class="num">1</td><td class="num">0</td></tr>
+          <tr><td>2026-07-21</td><td class="num">3</td><td class="num">6</td></tr>
+          <tr><td>2026-07-22</td><td class="num">0</td><td class="num">1</td></tr>
+          <tr><td>2026-07-23</td><td class="num">0</td><td class="num">0</td></tr>
+          <tr><td>2026-07-24</td><td class="num">0</td><td class="num">0</td></tr>
+          <tr><td>2026-07-25</td><td class="num">0</td><td class="num">1</td></tr>
+          <tr><td>2026-07-26</td><td class="num">0</td><td class="num">0</td></tr>
+          <tr><td>2026-07-27</td><td class="num">2</td><td class="num">3</td></tr>
+          <tr><td>2026-07-28</td><td class="num">0</td><td class="num">0</td></tr>
+          <tr><td>2026-07-29</td><td class="num">0</td><td class="num">1</td></tr>
+          <tr><td>2026-07-30</td><td class="num">1</td><td class="num">1</td></tr>
+          <tr><td>2026-07-31</td><td class="num">0</td><td class="num">0</td></tr>
+          <tr><td>2026-08-01</td><td class="num">0</td><td class="num">0</td></tr>
+          <tr><td>2026-08-02</td><td class="num">0</td><td class="num">0</td></tr>
+          <tr><td>2026-08-03</td><td class="num">0</td><td class="num">0</td></tr>
+          <tr><td>2026-08-04</td><td class="num">2</td><td class="num">2</td></tr>
+          <tr><td>2026-08-05</td><td class="num">0</td><td class="num">0</td></tr>
+          <tr><td>2026-08-06</td><td class="num">0</td><td class="num">0</td></tr>
+          <tr><td>2026-08-07</td><td class="num">2</td><td class="num">2</td></tr>
+          <tr><td>2026-08-08</td><td class="num">0</td><td class="num">4</td></tr>
+          <tr><td>2026-08-09</td><td class="num">0</td><td class="num">0</td></tr>
+          <tr><td>2026-08-10</td><td class="num">0</td><td class="num">1</td></tr>
+          <tr><td>2026-08-11</td><td class="num">0</td><td class="num">0</td></tr>
+          <tr><td>2026-08-12</td><td class="num">0</td><td class="num">0</td></tr>
+          <tr><td>2026-08-13</td><td class="num">0</td><td class="num">0</td></tr>
+          <tr><td>2026-08-14</td><td class="num">0</td><td class="num">0</td></tr>
+          <tr><td>2026-08-15</td><td class="num">0</td><td class="num">0</td></tr>
+          <tr><td>2026-08-16</td><td class="num">0</td><td class="num">0</td></tr>
+          <tr><td>2026-08-17</td><td class="num">0</td><td class="num">2</td></tr>
+          <tr><td>2026-08-18</td><td class="num">0</td><td class="num">0</td></tr>
+          <tr><td>2026-08-19</td><td class="num">0</td><td class="num">0</td></tr>
+          <tr><td>2026-08-20</td><td class="num">1</td><td class="num">2</td></tr>
+          <tr><td>2026-08-21</td><td class="num">1</td><td class="num">2</td></tr>
+          <tr><td>2026-08-22</td><td class="num">0</td><td class="num">0</td></tr>
+          <tr><td>2026-08-23</td><td class="num">0</td><td class="num">0</td></tr>
+          <tr><td>2026-08-24</td><td class="num">2</td><td class="num">2</td></tr>
+          <tr><td>2026-08-25</td><td class="num">0</td><td class="num">2</td></tr>
+          <tr><td>2026-08-26</td><td class="num">0</td><td class="num">2</td></tr>
+          <tr><td>2026-08-27</td><td class="num">0</td><td class="num">3</td></tr>
+          <tr><td>2026-08-28</td><td class="num">0</td><td class="num">0</td></tr>
+          <tr><td>2026-08-29</td><td class="num">0</td><td class="num">0</td></tr>
+          <tr><td>2026-08-30</td><td class="num">1</td><td class="num">1</td></tr>
+          <tr><td>2026-08-31</td><td class="num">0</td><td class="num">0</td></tr>
+          <tr><td>2026-09-01</td><td class="num">0</td><td class="num">0</td></tr>
+          <tr><td>2026-09-02</td><td class="num">0</td><td class="num">0</td></tr>
+          <tr><td>2026-09-03</td><td class="num">1</td><td class="num">2</td></tr>
+          <tr><td>2026-09-04</td><td class="num">0</td><td class="num">0</td></tr>
+          <tr><td>2026-09-05</td><td class="num">0</td><td class="num">1</td></tr>
+          <tr><td>2026-09-06</td><td class="num">0</td><td class="num">0</td></tr>
+          <tr><td>2026-09-07</td><td class="num">1</td><td class="num">0</td></tr>
+          <tr><td>2026-09-08</td><td class="num">0</td><td class="num">0</td></tr>
+          <tr><td>2026-09-09</td><td class="num">2</td><td class="num">0</td></tr>
+          <tr><td>2026-09-10</td><td class="num">0</td><td class="num">0</td></tr>
+          <tr><td>2026-09-11</td><td class="num">0</td><td class="num">0</td></tr>
+          <tr><td>2026-09-12</td><td class="num">0</td><td class="num">0</td></tr>
+          <tr><td>2026-09-13</td><td class="num">0</td><td class="num">0</td></tr>
+          <tr><td>2026-09-14</td><td class="num">0</td><td class="num">0</td></tr>
+          <tr><td>2026-09-15</td><td class="num">1</td><td class="num">3</td></tr>
+          <tr><td>2026-09-16</td><td class="num">1</td><td class="num">6</td></tr>
+          <tr><td>2026-09-17</td><td class="num">1</td><td class="num">1</td></tr>
+          <tr><td>2026-09-18</td><td class="num">1</td><td class="num">0</td></tr>
+          <tr><td>2026-09-19</td><td class="num">1</td><td class="num">1</td></tr>
+          <tr><td>2026-09-20</td><td class="num">0</td><td class="num">0</td></tr>
+          <tr><td>2026-09-21</td><td class="num">0</td><td class="num">0</td></tr>
+          <tr><td>2026-09-22</td><td class="num">0</td><td class="num">1</td></tr>
+          <tr><td>2026-09-23</td><td class="num">0</td><td class="num">2</td></tr>
+          <tr><td>2026-09-24</td><td class="num">0</td><td class="num">0</td></tr>
+      </tbody></table></div>
+    </section>
+    <footer>Chart.js via jsDelivr. Use calendar above to filter charts. Tables always show the full folder period.</footer>
+  </div>
+  <script>
+    const PACK = {"backend": {"dates": ["2026-06-01", "2026-06-02", "2026-06-03", "2026-06-04", "2026-06-05", "2026-06-06", "2026-06-07", "2026-06-08", "2026-06-09", "2026-06-10", "2026-06-11", "2026-06-12", "2026-06-13", "2026-06-14", "2026-06-15", "2026-06-16", "2026-06-17", "2026-06-18", "2026-06-19", "2026-06-20", "2026-06-21", "2026-06-22", "2026-06-23", "2026-06-24", "2026-06-25", "2026-06-26", "2026-06-27", "2026-06-28", "2026-06-29", "2026-06-30", "2026-07-01", "2026-07-02", "2026-07-03", "2026-07-04", "2026-07-05", "2026-07-06", "2026-07-07", "2026-07-08", "2026-07-09", "2026-07-10", "2026-07-11", "2026-07-12", "2026-07-13", "2026-07-14", "2026-07-15", "2026-07-16", "2026-07-17", "2026-07-18", "2026-07-19", "2026-07-20", "2026-07-21", "2026-07-22", "2026-07-23", "2026-07-24", "2026-07-25", "2026-07-26", "2026-07-27", "2026-07-28", "2026-07-29", "2026-07-30", "2026-07-31", "2026-08-01", "2026-08-02", "2026-08-03", "2026-08-04", "2026-08-05", "2026-08-06", "2026-08-07", "2026-08-08", "2026-08-09", "2026-08-10", "2026-08-11", "2026-08-12", "2026-08-13", "2026-08-14", "2026-08-15", "2026-08-16", "2026-08-17", "2026-08-18", "2026-08-19", "2026-08-20", "2026-08-21", "2026-08-22", "2026-08-23", "2026-08-24", "2026-08-25", "2026-08-26", "2026-08-27", "2026-08-28", "2026-08-29", "2026-08-30", "2026-08-31", "2026-09-01", "2026-09-02", "2026-09-03", "2026-09-04", "2026-09-05", "2026-09-06", "2026-09-07", "2026-09-08", "2026-09-09", "2026-09-10", "2026-09-11", "2026-09-12", "2026-09-13", "2026-09-14", "2026-09-15", "2026-09-16", "2026-09-17", "2026-09-18", "2026-09-19", "2026-09-20", "2026-09-21", "2026-09-22", "2026-09-23", "2026-09-24", "2026-09-25"], "dau": [17, 17, 19, 19, 18, 16, 16, 18, 15, 16, 18, 14, 12, 15, 14, 20, 12, 17, 10, 14, 14, 15, 15, 15, 17, 17, 14, 15, 22, 16, 19, 13, 17, 13, 11, 14, 16, 18, 14, 13, 10, 12, 14, 11, 13, 10, 13, 10, 12, 11, 15, 13, 12, 13, 15, 11, 19, 16, 12, 13, 18, 11, 10, 15, 15, 15, 15, 19, 11, 9, 17, 15, 11, 9, 15, 10, 9, 11, 19, 18, 13, 13, 13, 9, 15, 16, 11, 11, 11, 8, 12, 16, 15, 14, 14, 13, 11, 12, 14, 16, 15, 16, 13, 11, 10, 15, 17, 15, 13, 10, 14, 14, 16, 17, 19, 16, 9], "active_30d": [75, 73, 75, 77, 79, 79, 78, 75, 76, 78, 76, 77, 74, 71, 71, 71, 66, 68, 68, 69, 69, 68, 68, 68, 64, 62, 61, 59, 64, 65, 66, 66, 65, 64, 62, 60, 59, 59, 58, 57, 55, 55, 55, 54, 54, 52, 52, 51, 52, 51, 52, 52, 51, 50, 51, 52, 54, 54, 51, 51, 52, 53, 53, 54, 55, 56, 54, 55, 55, 54, 56, 56, 56, 56, 58, 59, 59, 61, 61, 61, 59, 59, 59, 59, 60, 62, 60, 59, 58, 56, 53, 53, 54, 54, 52, 50, 49, 48, 49, 51, 49, 50, 48, 48, 47, 50, 53, 53, 54, 54, 55, 55, 55, 56, 57, 55, 56], "paid": [5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 6, 6, 6, 6, 6, 6, 6, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 9, 9, 9, 9, 9, 9, 9, 9, 9, 10, 10], "range": {"start": "2026-06-01", "end": "2026-09-25", "timezone": "UTC"}}, "store": {"ios": {"dates": ["2026-06-01", "2026-06-02", "2026-06-03", "2026-06-04", "2026-06-05", "2026-06-06", "2026-06-07", "2026-06-08", "2026-06-09", "2026-06-10", "2026-06-11", "2026-06-12", "2026-06-13", "2026-06-14", "2026-06-15", "2026-06-16", "2026-06-17", "2026-06-18", "2026-06-19", "2026-06-20", "2026-06-21", "2026-06-22", "2026-06-23", "2026-06-24", "2026-06-25", "2026-06-26", "2026-06-27", "2026-06-28", "2026-06-29", "2026-06-30", "2026-07-01", "2026-07-02", "2026-07-03", "2026-07-04", "2026-07-05", "2026-07-06", "2026-07-07", "2026-07-08", "2026-07-09", "2026-07-10", "2026-07-11", "2026-07-12", "2026-07-13", "2026-07-14", "2026-07-15", "2026-07-16", "2026-07-17", "2026-07-18", "2026-07-19", "2026-07-20", "2026-07-21", "2026-07-22", "2026-07-23", "2026-07-24", "2026-07-25", "2026-07-26", "2026-07-27", "2026-07-28", "2026-07-29", "2026-07-30", "2026-07-31", "2026-08-01", "2026-08-02", "2026-08-03", "2026-08-04", "2026-08-05", "2026-08-06", "2026-08-07", "2026-08-08", "2026-08-09", "2026-08-10", "2026-08-11", "2026-08-12", "2026-08-13", "2026-08-14", "2026-08-15", "2026-08-16", "2026-08-17", "2026-08-18", "2026-08-19", "2026-08-20", "2026-08-21", "2026-08-22", "2026-08-23", "2026-08-24", "2026-08-25", "2026-08-26", "2026-08-27", "2026-08-28", "2026-08-29", "2026-08-30", "2026-08-31", "2026-09-01", "2026-09-02", "2026-09-03", "2026-09-04", "2026-09-05", "2026-09-06", "2026-09-07", "2026-09-08", "2026-09-09", "2026-09-10", "2026-09-11", "2026-09-12", "2026-09-13", "2026-09-14", "2026-09-15", "2026-09-16", "2026-09-17", "2026-09-18", "2026-09-19", "2026-09-20", "2026-09-21", "2026-09-22", "2026-09-23", "2026-09-24"], "downloads": [1, 0, 0, 2, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 2, 0, 0, 0, 0, 0, 1, 0, 0, 0, 2, 0, 0, 1, 3, 0, 0, 0, 0, 0, 2, 0, 0, 1, 0, 0, 0, 0, 2, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 2, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0], "product_page_views": [6, 0, 0, 0, 2, 6, 1, 1, 1, 2, 2, 0, 0, 0, 0, 0, 2, 2, 0, 0, 1, 1, 0, 0, 0, 2, 1, 0, 0, 0, 4, 0, 0, 1, 1, 0, 2, 1, 3, 1, 0, 3, 0, 1, 0, 0, 1, 0, 0, 0, 6, 1, 0, 0, 1, 0, 3, 0, 1, 1, 0, 0, 0, 0, 2, 0, 0, 2, 4, 0, 1, 0, 0, 0, 0, 0, 0, 2, 0, 0, 2, 2, 0, 0, 2, 2, 2, 3, 0, 0, 1, 0, 0, 0, 2, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 6, 1, 0, 1, 0, 0, 1, 2, 0]}, "play": {"dates": ["2026-06-01", "2026-06-02", "2026-06-03", "2026-06-04", "2026-06-05", "2026-06-06", "2026-06-07", "2026-06-08", "2026-06-09", "2026-06-10", "2026-06-11", "2026-06-12", "2026-06-13", "2026-06-14", "2026-06-15", "2026-06-16", "2026-06-17", "2026-06-18", "2026-06-19", "2026-06-20", "2026-06-21", "2026-06-22", "2026-06-23", "2026-06-24", "2026-06-25", "2026-06-26", "2026-06-27", "2026-06-28", "2026-06-29", "2026-06-30", "2026-07-01", "2026-07-02", "2026-07-03", "2026-07-04", "2026-07-05", "2026-07-06", "2026-07-07", "2026-07-08", "2026-07-09", "2026-07-10", "2026-07-11", "2026-07-12", "2026-07-13", "2026-07-14", "2026-07-15", "2026-07-16", "2026-07-17", "2026-07-18", "2026-07-19", "2026-07-20", "2026-07-21", "2026-07-22", "2026-07-23", "2026-07-24", "2026-07-25", "2026-07-26", "2026-07-27", "2026-07-28", "2026-07-29", "2026-07-30", "2026-07-31", "2026-08-01", "2026-08-02", "2026-08-03", "2026-08-04", "2026-08-05", "2026-08-06", "2026-08-07", "2026-08-08", "2026-08-09", "2026-08-10", "2026-08-11", "2026-08-12", "2026-08-13", "2026-08-14", "2026-08-15", "2026-08-16", "2026-08-17", "2026-08-18", "2026-08-19", "2026-08-20", "2026-08-21", "2026-08-22", "2026-08-23", "2026-08-24", "2026-08-25", "2026-08-26", "2026-08-27", "2026-08-28", "2026-08-29", "2026-08-30", "2026-08-31", "2026-09-01", "2026-09-02", "2026-09-03", "2026-09-04", "2026-09-05", "2026-09-06", "2026-09-07", "2026-09-08", "2026-09-09", "2026-09-10", "2026-09-11", "2026-09-12", "2026-09-13", "2026-09-14", "2026-09-15", "2026-09-16", "2026-09-17", "2026-09-18", "2026-09-19", "2026-09-20", "2026-09-21"], "install_base": [97, 95, 98, 95, 107, 103, 106, 100, 104, 104, 100, 106, 105, 102, 103, 102, 103, 98, 100, 102, 106, 103, 105, 98, 101, 98, 102, 97, 109, 106, 109, 102, 106, 106, 103, 104, 99, 112, 102, 109, 100, 100, 105, 104, 105, 110, 103, 101, 98, 100, 97, 100, 103, 103, 96, 102, 99, 93, 97, 98, 97, 102, 99, 103, 101, 97, 95, 101, 98, 97, 95, 98, 96, 92, 98, 99, 99, 102, 95, 92, 95, 94, 96, 94, 89, 95, 92, 93, 95, 89, 89, 94, 96, 99, 95, 92, 94, 90, 93, 97, 100, 93, 99, 103, 95, 98, 93, 89, 93, 96, 93, 89, 90], "notes": ["", "", "", "", "", "", "", "", "", "", "", "", "", "", "Roll-out of release: Started roll-out of 102 (1.1.5) at 100%.", "", "", "Roll-out of release: Started roll-out of 103 (1.1.5) at 100%.", "", "", "", "", "", "", "", "", "", "", "Roll-out of release: Started roll-out of 105 (1.1.5) at 100%.", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "Roll-out of release: Started roll-out of 107 (1.1.6) at 100%.", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", ""]}}, "generated_at": "2026-09-25T17:15:08.330865+00:00"};
+    const DATE_MIN = "2026-06-01";
+    const DATE_MAX = "2026-09-25";
+    const B = PACK.backend, S = PACK.store;
+    const charts = {};
+
+    const common = {
+      responsive: true, maintainAspectRatio: false,
+      interaction: { mode: "index", intersect: false },
+      plugins: { legend: { position: "top" } },
+      scales: {
+        x: { ticks: { maxTicksLimit: 12 }, grid: { color: "rgba(0,0,0,0.04)" } },
+        y: { beginAtZero: true, ticks: { precision: 0 }, grid: { color: "rgba(0,0,0,0.06)" } },
+      },
+    };
+
+    function sliceSeries(dates, vals, d0, d1) {
+      const labels = [], data = [];
+      for (let i = 0; i < dates.length; i++) {
+        if (dates[i] >= d0 && dates[i] <= d1) {
+          labels.push(dates[i]);
+          data.push(vals[i]);
+        }
+      }
+      return [labels, data];
+    }
+
+    function valAtEnd(dates, vals, d1) {
+      let last = null;
+      for (let i = 0; i < dates.length; i++) {
+        if (dates[i] <= d1) last = vals[i];
+      }
+      return last;
+    }
+
+    function mkChart(id, labels, datasets, yBeginZero = true) {
+      if (charts[id]) charts[id].destroy();
+      charts[id] = new Chart(document.getElementById(id), {
+        type: "line",
+        data: { labels, datasets },
+        options: {
+          ...common,
+          scales: {
+            ...common.scales,
+            y: { ...common.scales.y, beginAtZero: yBeginZero },
+          },
+        },
+      });
+    }
+
+    function updateCharts() {
+      let d0 = document.getElementById("startDate").value;
+      let d1 = document.getElementById("endDate").value;
+      if (!d0 || !d1) return;
+      if (d0 > d1) {
+        d0 = d1;
+        document.getElementById("startDate").value = d0;
+      }
+
+      const [bDates, bDau] = sliceSeries(B.dates, B.dau, d0, d1);
+      const [, bA30] = sliceSeries(B.dates, B.active_30d, d0, d1);
+      const [, bPaid] = sliceSeries(B.dates, B.paid, d0, d1);
+      const [pDates, pBase] = sliceSeries(S.play.dates, S.play.install_base, d0, d1);
+      const [iDates, iDl] = sliceSeries(S.ios.dates, S.ios.downloads, d0, d1);
+      const [, iPv] = sliceSeries(S.ios.dates, S.ios.product_page_views, d0, d1);
+
+      document.getElementById("statDau").textContent = valAtEnd(B.dates, B.dau, d1) ?? "-";
+      document.getElementById("statA30").textContent = valAtEnd(B.dates, B.active_30d, d1) ?? "-";
+      document.getElementById("statPaid").textContent = valAtEnd(B.dates, B.paid, d1) ?? "-";
+
+      mkChart("activeChart", bDates, [
+        { label: "DAU", data: bDau, borderColor: "#2f5d8a", backgroundColor: "rgba(47,93,138,0.1)", fill: true, tension: 0.2, pointRadius: 0 },
+        { label: "Active 30d", data: bA30, borderColor: "#5c5c5c", tension: 0.2, pointRadius: 0 },
+      ]);
+      mkChart("paidChart", bDates, [
+        { label: "Paid subscribers", data: bPaid, borderColor: "#0b6e4f", backgroundColor: "rgba(11,110,79,0.1)", fill: true, tension: 0.2, pointRadius: 0 },
+      ]);
+      mkChart("playChart", pDates, [
+        { label: "Install base (all countries)", data: pBase, borderColor: "#01875f", fill: true, tension: 0.2, pointRadius: 0 },
+      ], false);
+      mkChart("iosChart", iDates, [
+        { label: "Downloads", data: iDl, borderColor: "#1d1d1f", fill: true, tension: 0.2, pointRadius: 0 },
+        { label: "Product page views", data: iPv, borderColor: "#bf4800", borderDash: [5,4], tension: 0.2, pointRadius: 0 },
+      ]);
+    }
+
+    document.getElementById("startDate").addEventListener("change", updateCharts);
+    document.getElementById("endDate").addEventListener("change", updateCharts);
+    document.getElementById("resetDates").addEventListener("click", () => {
+      document.getElementById("startDate").value = DATE_MIN;
+      document.getElementById("endDate").value = DATE_MAX;
+      updateCharts();
+    });
+
+    updateCharts();
+
+    function tableToTSV(table) {
+      return [...table.querySelectorAll("tr")].map(tr => [...tr.children].map(c => c.innerText.trim()).join("\t")).join("\n");
+    }
+    document.querySelectorAll("[data-copy]").forEach(btn => {
+      btn.addEventListener("click", async () => {
+        const table = document.getElementById(btn.dataset.copy);
+        const tsv = tableToTSV(table);
+        try { await navigator.clipboard.writeText(tsv); } catch {}
+        const p = btn.textContent; btn.textContent = "Copied"; btn.classList.add("copied");
+        setTimeout(() => { btn.textContent = p; btn.classList.remove("copied"); }, 1500);
+      });
+    });
+    const impactBtn = document.getElementById("copyImpact");
+    if (impactBtn) {
+      impactBtn.addEventListener("click", async () => {
+        const tsv = tableToTSV(document.getElementById("impactTable"));
+        try { await navigator.clipboard.writeText(tsv); } catch {}
+        impactBtn.textContent = "Copied";
+        setTimeout(() => impactBtn.textContent = "Copy table", 1500);
+      });
+    }
+  </script>
+</body>
+</html>
