@@ -1,0 +1,635 @@
+{
+  "video_model_count": 54,
+  "image_model_count": 50,
+  "speech_model_count": 22,
+  "transcription_model_count": 19,
+  "video_ids": [
+    "alibaba/happyhorse-1.0",
+    "alibaba/happyhorse-1.0-20260624",
+    "alibaba/happyhorse-1.1",
+    "alibaba/happyhorse-1.1-20260624",
+    "alibaba/wan-2.6",
+    "alibaba/wan-2.6-20260327",
+    "alibaba/wan-2.7",
+    "alibaba/wan-2.7-20260414",
+    "alibaba/wan-3.0",
+    "alibaba/wan-3.0-20260824",
+    "alibaba/wan-3.0-prime",
+    "alibaba/wan-3.0-prime-20260827",
+    "black-forest-labs/flux-3-video",
+    "black-forest-labs/flux-3-video-20260804",
+    "black-forest-labs/flux-video-upscale",
+    "black-forest-labs/flux-video-upscale-20260819",
+    "bytedance/seedance-1-5-pro",
+    "bytedance/seedance-1-5-pro-20260320",
+    "bytedance/seedance-2.0",
+    "bytedance/seedance-2.0-20260414",
+    "bytedance/seedance-2.0-fast",
+    "bytedance/seedance-2.0-fast-20260414",
+    "bytedance/seedance-2.0-mini",
+    "bytedance/seedance-2.0-mini-20260811",
+    "bytedance/seedance-2.5",
+    "bytedance/seedance-2.5-20260807",
+    "google/veo-3.1",
+    "google/veo-3.1-20260320",
+    "google/veo-3.1-fast",
+    "google/veo-3.1-fast-20260320",
+    "google/veo-3.1-lite",
+    "google/veo-3.1-lite-20260331",
+    "heygen/avatar-iv",
+    "heygen/avatar-iv-20260625",
+    "kwaivgi/kling-v3.0-pro",
+    "kwaivgi/kling-v3.0-pro-20260429",
+    "kwaivgi/kling-v3.0-std",
+    "kwaivgi/kling-v3.0-std-20260429",
+    "kwaivgi/kling-video-o1",
+    "kwaivgi/kling-video-o1-20260420",
+    "minimax/hailuo-03-20260730",
+    "minimax/hailuo-2.3",
+    "minimax/hailuo-2.3-20260420",
+    "minimax/hailuo-3",
+    "openai/sora-2-pro",
+    "openai/sora-2-pro-20260320",
+    "runway/aleph-2",
+    "runway/aleph-2-20260729",
+    "runway/gen-4.5",
+    "runway/gen-4.5-20260729",
+    "x-ai/grok-imagine-video",
+    "x-ai/grok-imagine-video-1.5",
+    "x-ai/grok-imagine-video-1.5-20260719",
+    "x-ai/grok-imagine-video-20260512"
+  ],
+  "results": [
+    {
+      "capability": "video.text_to_video.veo",
+      "coverage": "yes",
+      "openmontage": "veo_video (FAL_KEY or GOOGLE_API_KEY)",
+      "expected_models": [
+        "google/veo-3.1",
+        "google/veo-3.1-fast",
+        "google/veo-3.1-lite"
+      ],
+      "found_models": [
+        "google/veo-3.1",
+        "google/veo-3.1-fast",
+        "google/veo-3.1-lite"
+      ],
+      "missing_models": [],
+      "live_ok": true,
+      "notes": "Same family via one OpenRouter key. Native audio flags still differ per model."
+    },
+    {
+      "capability": "video.text_to_video.kling",
+      "coverage": "yes",
+      "openmontage": "kling_video (FAL_KEY) + kling_official_video (KLING_API_KEY)",
+      "expected_models": [
+        "kwaivgi/kling-v3.0-pro",
+        "kwaivgi/kling-v3.0-std",
+        "kwaivgi/kling-video-o1"
+      ],
+      "found_models": [
+        "kwaivgi/kling-v3.0-pro",
+        "kwaivgi/kling-v3.0-std",
+        "kwaivgi/kling-video-o1"
+      ],
+      "missing_models": [],
+      "live_ok": true,
+      "notes": "Generation yes. Official Kling Elements, account usage, and first-party avatar/lip-sync APIs are not on OpenRouter."
+    },
+    {
+      "capability": "video.text_to_video.seedance",
+      "coverage": "yes",
+      "openmontage": "seedance_video (FAL_KEY), seedance_ark (ARK_API_KEY), seedance_replicate",
+      "expected_models": [
+        "bytedance/seedance-2.5",
+        "bytedance/seedance-2.0",
+        "bytedance/seedance-2.0-fast",
+        "bytedance/seedance-2.0-mini",
+        "bytedance/seedance-1-5-pro"
+      ],
+      "found_models": [
+        "bytedance/seedance-2.5",
+        "bytedance/seedance-2.0",
+        "bytedance/seedance-2.0-fast",
+        "bytedance/seedance-2.0-mini",
+        "bytedance/seedance-1-5-pro"
+      ],
+      "missing_models": [],
+      "live_ok": true,
+      "notes": "Best OpenRouter replacement for OpenMontage's preferred premium default."
+    },
+    {
+      "capability": "video.text_to_video.wan",
+      "coverage": "yes",
+      "openmontage": "wan_video local GPU (VIDEO_GEN_LOCAL_ENABLED)",
+      "expected_models": [
+        "alibaba/wan-3.0-prime",
+        "alibaba/wan-3.0",
+        "alibaba/wan-2.7",
+        "alibaba/wan-2.6"
+      ],
+      "found_models": [
+        "alibaba/wan-3.0-prime",
+        "alibaba/wan-3.0",
+        "alibaba/wan-2.7",
+        "alibaba/wan-2.6"
+      ],
+      "missing_models": [],
+      "live_ok": true,
+      "notes": "Cloud Wan instead of local checkpoints. Offline/privacy path is lost."
+    },
+    {
+      "capability": "video.text_to_video.minimax",
+      "coverage": "yes",
+      "openmontage": "minimax_video (MINIMAX_API_KEY) + minimax_fal_video (FAL_KEY)",
+      "expected_models": [
+        "minimax/hailuo-3",
+        "minimax/hailuo-2.3"
+      ],
+      "found_models": [
+        "minimax/hailuo-3",
+        "minimax/hailuo-2.3"
+      ],
+      "missing_models": [],
+      "live_ok": true,
+      "notes": "H3 is on OpenRouter (2K, audio). Direct MiniMax CN region routing is not."
+    },
+    {
+      "capability": "video.text_to_video.runway",
+      "coverage": "yes",
+      "openmontage": "runway_video (RUNWAY_API_KEY)",
+      "expected_models": [
+        "runway/gen-4.5",
+        "runway/aleph-2"
+      ],
+      "found_models": [
+        "runway/gen-4.5",
+        "runway/aleph-2"
+      ],
+      "missing_models": [],
+      "live_ok": true,
+      "notes": "Aleph 2 is video-to-video / edit oriented; Gen-4.5 is the closer T2V match."
+    },
+    {
+      "capability": "video.text_to_video.grok",
+      "coverage": "yes",
+      "openmontage": "grok_video (XAI_API_KEY)",
+      "expected_models": [
+        "x-ai/grok-imagine-video",
+        "x-ai/grok-imagine-video-1.5"
+      ],
+      "found_models": [
+        "x-ai/grok-imagine-video",
+        "x-ai/grok-imagine-video-1.5"
+      ],
+      "missing_models": [],
+      "live_ok": true,
+      "notes": ""
+    },
+    {
+      "capability": "video.text_to_video.sora",
+      "coverage": "yes",
+      "openmontage": "sora_video (OPENAI_API_KEY)",
+      "expected_models": [
+        "openai/sora-2-pro"
+      ],
+      "found_models": [
+        "openai/sora-2-pro"
+      ],
+      "missing_models": [],
+      "live_ok": true,
+      "notes": "OpenRouter lists Sora 2 Pro only; availability still depends on OpenRouter routing."
+    },
+    {
+      "capability": "video.heygen_gateway",
+      "coverage": "partial",
+      "openmontage": "heygen_video (HEYGEN_API_KEY) \u2014 workflow gateway to Veo/Sora/Kling/Runway/Seedance",
+      "expected_models": [
+        "heygen/avatar-iv"
+      ],
+      "found_models": [
+        "heygen/avatar-iv"
+      ],
+      "missing_models": [],
+      "live_ok": true,
+      "notes": "Different product. OpenRouter HeyGen is Avatar IV talking-head generation (text+image+audio \u2192 video). It is NOT HeyGen's multi-model GenerateVideoNode workflow that OpenMontage uses as a one-key Veo/Sora/Kling router."
+    },
+    {
+      "capability": "video.avatar.talking_head",
+      "coverage": "partial",
+      "openmontage": "talking_head local (SadTalker/MuseTalk) + kling_avatar + heygen avatars",
+      "expected_models": [
+        "heygen/avatar-iv"
+      ],
+      "found_models": [
+        "heygen/avatar-iv"
+      ],
+      "missing_models": [],
+      "live_ok": true,
+      "notes": "Cloud avatar yes. Local lip-sync (Wav2Lip/SadTalker) and Kling Official avatar/lip-sync stay off OpenRouter."
+    },
+    {
+      "capability": "video.higgsfield",
+      "coverage": "no",
+      "openmontage": "higgsfield_video (HIGGSFIELD_API_KEY + SECRET)",
+      "expected_models": [],
+      "found_models": [],
+      "missing_models": [],
+      "live_ok": true,
+      "notes": "No Higgsfield models on OpenRouter."
+    },
+    {
+      "capability": "video.hunyuan",
+      "coverage": "no",
+      "openmontage": "hunyuan_video local + hunyuan_cloud_video (TENCENT_TOKENHUB_API_KEY)",
+      "expected_models": [],
+      "found_models": [],
+      "missing_models": [],
+      "live_ok": true,
+      "notes": "Hunyuan on OpenRouter is text LLM only, not HunyuanVideo."
+    },
+    {
+      "capability": "video.ltx_cogvideo_local",
+      "coverage": "no",
+      "openmontage": "ltx_video_local, ltx_video_modal, cogvideo_video",
+      "expected_models": [],
+      "found_models": [],
+      "missing_models": [],
+      "live_ok": true,
+      "notes": "Local/self-hosted GPU paths have no OpenRouter equivalent."
+    },
+    {
+      "capability": "video.jimeng",
+      "coverage": "no",
+      "openmontage": "jimeng_video (VOLC_ACCESSKEY/SECRETKEY)",
+      "expected_models": [],
+      "found_models": [],
+      "missing_models": [],
+      "live_ok": true,
+      "notes": "Volcengine Jimeng is first-party only."
+    },
+    {
+      "capability": "video.gemini_omni_edit",
+      "coverage": "no",
+      "openmontage": "gemini_omni_video conversational video editing",
+      "expected_models": [],
+      "found_models": [],
+      "missing_models": [],
+      "live_ok": true,
+      "notes": "OpenRouter has Veo generation, not Gemini Omni's timecoded conversational editor."
+    },
+    {
+      "capability": "video.atlas_gateway",
+      "coverage": "partial",
+      "openmontage": "atlas_video (ATLASCLOUD_API_KEY) \u2014 already a one-key multi-model gateway",
+      "expected_models": [],
+      "found_models": [],
+      "missing_models": [],
+      "live_ok": true,
+      "notes": "Atlas Cloud is the closest existing OpenMontage analogue to OpenRouter. Overlapping models; different catalog and request shapes."
+    },
+    {
+      "capability": "video.comfyui",
+      "coverage": "no",
+      "openmontage": "comfyui_video local server",
+      "expected_models": [],
+      "found_models": [],
+      "missing_models": [],
+      "live_ok": true,
+      "notes": "Node graphs stay local."
+    },
+    {
+      "capability": "video.stock",
+      "coverage": "no",
+      "openmontage": "pexels_video, pixabay_video, NASA/ESA/NARA/archive.org corpus builder",
+      "expected_models": [],
+      "found_models": [],
+      "missing_models": [],
+      "live_ok": true,
+      "notes": "Stock and public-archive retrieval is not a generative API. Keep Pexels/Pixabay keys or use free archives."
+    },
+    {
+      "capability": "video.flux3_bonus",
+      "coverage": "bonus",
+      "openmontage": "not a first-class OpenMontage video tool",
+      "expected_models": [
+        "black-forest-labs/flux-3-video",
+        "black-forest-labs/flux-video-upscale",
+        "alibaba/happyhorse-1.1",
+        "alibaba/happyhorse-1.0"
+      ],
+      "found_models": [
+        "black-forest-labs/flux-3-video",
+        "black-forest-labs/flux-video-upscale",
+        "alibaba/happyhorse-1.1",
+        "alibaba/happyhorse-1.0"
+      ],
+      "missing_models": [],
+      "live_ok": true,
+      "notes": "OpenRouter-only extras OpenMontage does not wrap today."
+    },
+    {
+      "capability": "image.flux",
+      "coverage": "yes",
+      "openmontage": "flux_image (FAL_KEY)",
+      "expected_models": [
+        "black-forest-labs/flux.2-pro",
+        "black-forest-labs/flux.2-max",
+        "black-forest-labs/flux.2-flex",
+        "black-forest-labs/flux.2-klein-4b"
+      ],
+      "found_models": [
+        "black-forest-labs/flux.2-pro",
+        "black-forest-labs/flux.2-max",
+        "black-forest-labs/flux.2-flex",
+        "black-forest-labs/flux.2-klein-4b"
+      ],
+      "missing_models": [],
+      "live_ok": true,
+      "notes": ""
+    },
+    {
+      "capability": "image.recraft",
+      "coverage": "yes",
+      "openmontage": "recraft_image (FAL_KEY)",
+      "expected_models": [
+        "recraft/recraft-v4.1",
+        "recraft/recraft-v4.1-pro",
+        "recraft/recraft-v4",
+        "recraft/recraft-v3"
+      ],
+      "found_models": [
+        "recraft/recraft-v4.1",
+        "recraft/recraft-v4.1-pro",
+        "recraft/recraft-v4",
+        "recraft/recraft-v3"
+      ],
+      "missing_models": [],
+      "live_ok": true,
+      "notes": "Vector/style variants also exist on OpenRouter."
+    },
+    {
+      "capability": "image.openai",
+      "coverage": "yes",
+      "openmontage": "openai_image (OPENAI_API_KEY)",
+      "expected_models": [
+        "openai/gpt-image-2",
+        "openai/gpt-image-1",
+        "openai/gpt-image-1-mini",
+        "openai/gpt-5-image"
+      ],
+      "found_models": [
+        "openai/gpt-image-2",
+        "openai/gpt-image-1",
+        "openai/gpt-image-1-mini",
+        "openai/gpt-5-image"
+      ],
+      "missing_models": [],
+      "live_ok": true,
+      "notes": ""
+    },
+    {
+      "capability": "image.grok",
+      "coverage": "yes",
+      "openmontage": "grok_image (XAI_API_KEY)",
+      "expected_models": [
+        "x-ai/grok-imagine-image-2.0",
+        "x-ai/grok-imagine-image-quality"
+      ],
+      "found_models": [
+        "x-ai/grok-imagine-image-2.0",
+        "x-ai/grok-imagine-image-quality"
+      ],
+      "missing_models": [],
+      "live_ok": true,
+      "notes": ""
+    },
+    {
+      "capability": "image.google",
+      "coverage": "yes",
+      "openmontage": "google_imagen (GOOGLE_API_KEY)",
+      "expected_models": [
+        "google/gemini-3.1-flash-image",
+        "google/gemini-3-pro-image",
+        "google/gemini-2.5-flash-image"
+      ],
+      "found_models": [
+        "google/gemini-3.1-flash-image",
+        "google/gemini-3-pro-image",
+        "google/gemini-2.5-flash-image"
+      ],
+      "missing_models": [],
+      "live_ok": true,
+      "notes": "Gemini image models, not necessarily Vertex Imagen SKUs."
+    },
+    {
+      "capability": "image.seedream_qwen",
+      "coverage": "yes",
+      "openmontage": "seedream_image (FAL_KEY), dashscope_image (DASHSCOPE_API_KEY)",
+      "expected_models": [
+        "bytedance-seed/seedream-5-0-pro",
+        "bytedance-seed/seedream-5-0-lite",
+        "bytedance-seed/seedream-4.5",
+        "qwen/qwen-image-3",
+        "qwen/qwen-image-3-pro"
+      ],
+      "found_models": [
+        "bytedance-seed/seedream-5-0-pro",
+        "bytedance-seed/seedream-5-0-lite",
+        "bytedance-seed/seedream-4.5",
+        "qwen/qwen-image-3",
+        "qwen/qwen-image-3-pro"
+      ],
+      "missing_models": [],
+      "live_ok": true,
+      "notes": ""
+    },
+    {
+      "capability": "image.local_stock",
+      "coverage": "no",
+      "openmontage": "local_diffusion, pexels_image, pixabay_image",
+      "expected_models": [],
+      "found_models": [],
+      "missing_models": [],
+      "live_ok": true,
+      "notes": "Offline diffusion and stock search stay outside OpenRouter."
+    },
+    {
+      "capability": "tts.elevenlabs",
+      "coverage": "no",
+      "openmontage": "elevenlabs_tts + fal_elevenlabs_tts (ELEVENLABS_API_KEY / FAL_KEY)",
+      "expected_models": [],
+      "found_models": [],
+      "missing_models": [],
+      "live_ok": true,
+      "notes": "No ElevenLabs on OpenRouter. Closest paid substitutes: Fish Audio, MiniMax Speech, Grok Voice, Gemini TTS."
+    },
+    {
+      "capability": "tts.fish_audio",
+      "coverage": "yes",
+      "openmontage": "fish_audio_tts (FISH_AUDIO_API_KEY)",
+      "expected_models": [
+        "fish-audio/s1",
+        "fish-audio/s2-pro",
+        "fish-audio/s2.1-pro"
+      ],
+      "found_models": [
+        "fish-audio/s1",
+        "fish-audio/s2-pro",
+        "fish-audio/s2.1-pro"
+      ],
+      "missing_models": [],
+      "live_ok": true,
+      "notes": "Voice cloning via OpenRouter still depends on Fish Audio reference_id passthrough."
+    },
+    {
+      "capability": "tts.google_openai_minimax_qwen_grok",
+      "coverage": "partial",
+      "openmontage": "google_tts, openai_tts, dashscope_tts, plus MiniMax/Grok if keyed",
+      "expected_models": [
+        "google/gemini-3.1-flash-tts-preview",
+        "openai/gpt-audio",
+        "openai/gpt-audio-mini",
+        "minimax/speech-2.8-hd",
+        "minimax/speech-2.8-turbo",
+        "qwen/qwen-audio-3.0-tts-plus",
+        "x-ai/grok-voice-tts-1.0"
+      ],
+      "found_models": [
+        "google/gemini-3.1-flash-tts-preview",
+        "openai/gpt-audio",
+        "openai/gpt-audio-mini",
+        "minimax/speech-2.8-hd",
+        "minimax/speech-2.8-turbo",
+        "qwen/qwen-audio-3.0-tts-plus",
+        "x-ai/grok-voice-tts-1.0"
+      ],
+      "missing_models": [],
+      "live_ok": true,
+      "notes": "Narration exists, but OpenMontage's 700-voice Google Cloud TTS catalog and SSML styles do not map 1:1."
+    },
+    {
+      "capability": "tts.local_azure_kling_doubao",
+      "coverage": "partial",
+      "openmontage": "piper_tts, azure_tts, kling_tts, doubao_tts",
+      "expected_models": [
+        "hexgrad/kokoro-82m"
+      ],
+      "found_models": [
+        "hexgrad/kokoro-82m"
+      ],
+      "missing_models": [],
+      "live_ok": true,
+      "notes": "Kokoro is a small local-style voice. Azure neural SSML, Kling TTS, and Doubao stay first-party."
+    },
+    {
+      "capability": "music.elevenlabs_suno",
+      "coverage": "partial",
+      "openmontage": "music_gen / fal_elevenlabs_music, suno_music",
+      "expected_models": [
+        "google/lyria-3-pro-preview",
+        "google/lyria-3-clip-preview"
+      ],
+      "found_models": [
+        "google/lyria-3-pro-preview",
+        "google/lyria-3-clip-preview"
+      ],
+      "missing_models": [],
+      "live_ok": true,
+      "notes": "Lyria is a music bonus. Suno and ElevenLabs music are absent. Pixabay/Freesound libraries still need their own keys."
+    },
+    {
+      "capability": "stt.whisperx_azure_dashscope",
+      "coverage": "partial",
+      "openmontage": "transcriber (WhisperX local), azure_stt, dashscope_asr",
+      "expected_models": [
+        "openai/whisper-large-v3",
+        "openai/gpt-4o-transcribe",
+        "google/chirp-3",
+        "qwen/qwen3-asr-flash-2026-02-10",
+        "fish-audio/transcribe-1",
+        "x-ai/grok-stt-1.0"
+      ],
+      "found_models": [
+        "openai/whisper-large-v3",
+        "openai/gpt-4o-transcribe",
+        "google/chirp-3",
+        "qwen/qwen3-asr-flash-2026-02-10",
+        "fish-audio/transcribe-1",
+        "x-ai/grok-stt-1.0"
+      ],
+      "missing_models": [],
+      "live_ok": true,
+      "notes": "Cloud STT yes. WhisperX word-level timestamps + diarization (HF_TOKEN) are local and better for caption burn-in."
+    },
+    {
+      "capability": "studio.ffmpeg_remotion_hyperframes",
+      "coverage": "local_only",
+      "openmontage": "video_compose, hyperframes_compose, remotion-composer",
+      "expected_models": [],
+      "found_models": [],
+      "missing_models": [],
+      "live_ok": true,
+      "notes": "Composition runtimes are local Node/FFmpeg. OpenRouter cannot replace them."
+    },
+    {
+      "capability": "studio.enhancement",
+      "coverage": "partial",
+      "openmontage": "upscale, bg_remove, face_restore, color_grade",
+      "expected_models": [
+        "black-forest-labs/flux-video-upscale"
+      ],
+      "found_models": [
+        "black-forest-labs/flux-video-upscale"
+      ],
+      "missing_models": [],
+      "live_ok": true,
+      "notes": "One video upscaler. No rembg/U2Net, CodeFormer, or LUT grading on OpenRouter."
+    },
+    {
+      "capability": "studio.character_3d_manim",
+      "coverage": "local_only",
+      "openmontage": "character-animation, threejs/blender worlds, manim, diagrams",
+      "expected_models": [],
+      "found_models": [],
+      "missing_models": [],
+      "live_ok": true,
+      "notes": "These pipelines are code + local renderers, not video-model calls."
+    },
+    {
+      "capability": "studio.skills_and_pipelines",
+      "coverage": "local_only",
+      "openmontage": "12 pipelines, 700+ skill files, checkpoint/budget/reviewer protocol",
+      "expected_models": [],
+      "found_models": [],
+      "missing_models": [],
+      "live_ok": true,
+      "notes": "Skills are markdown instructions. An Agent SDK can read them; OpenRouter does not host them."
+    }
+  ],
+  "summary": {
+    "yes": 15,
+    "partial": 8,
+    "no": 9,
+    "bonus": 1,
+    "local_only": 3
+  },
+  "extras": {
+    "heygen_on_openrouter": [
+      "heygen/avatar-iv",
+      "heygen/avatar-iv-20260625"
+    ],
+    "kling_on_openrouter": [
+      "kwaivgi/kling-v3.0-pro",
+      "kwaivgi/kling-v3.0-pro-20260429",
+      "kwaivgi/kling-v3.0-std",
+      "kwaivgi/kling-v3.0-std-20260429",
+      "kwaivgi/kling-video-o1",
+      "kwaivgi/kling-video-o1-20260420"
+    ],
+    "higgsfield_on_openrouter": [],
+    "elevenlabs_on_openrouter": [],
+    "suno_on_openrouter": [],
+    "live_failures": []
+  }
+}
